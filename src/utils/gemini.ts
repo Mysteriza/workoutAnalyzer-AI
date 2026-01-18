@@ -44,7 +44,9 @@ STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 ATURAN TAMBAHAN:
 1. Bahasa Indonesia yang luwes, enak dibaca, mengalir.
 2. JANGAN pakai emoji.
-3. Pertimbangkan/bedakan **Jenis Aktivitas** (Jalan/Lari/Sepeda/Hike) dalam menilai Speed dan keseluruhan analisis. Jangan samakan standar speed lari dengan sepeda. Atau speed MTB dengan RB.`;
+4. JANGAN gunakan data dari "aktivitas sebelumnya". Fokus hanya pada data yang diberikan di atas.
+5. Jika data (misal Power/Cadence, atau Heart Rate, dll) bernilai "N/A" atau 0, nyatakan bahwa data tidak tersedia (jangan halusinasi).
+6. PENTING: Bedakan "Max HR (Tanaka)" (Teoritis User) vs "Max HR (Sesi Ini)" (Aktual).`;
 
 export function buildAnalysisPrompt(
   activity: StravaActivity,
@@ -136,12 +138,13 @@ DATA SESI (${activity.type} - ${activity.sport_type}):
 - Jarak: ${(activity.distance / 1000).toFixed(2)} km
 - Elevasi: ${activity.total_elevation_gain} m
 - Gear/Sepeda/Sepatu: ${gearName}
+- HR Max (Sesi Ini): ${activity.max_heartrate || "N/A"} bpm
 
 METRIK RATA-RATA:
-- HR: ${avgHr} bpm (${((avgHr - userProfile.restingHeartRate)/hrr*100).toFixed(0)}% HRR)
-- Speed: ${(avgSpeed * 3.6).toFixed(1)} km/h
-- Power: ${avgWatts} W (${wKg} W/kg)
-- Cadence: ${avgCadence} rpm
+- HR: ${avgHr > 0 ? avgHr + " bpm" : "N/A"} (${avgHr > 0 ? ((avgHr - userProfile.restingHeartRate)/hrr*100).toFixed(0) + "% HRR" : "-"})
+- Speed: ${avgSpeed > 0 ? (avgSpeed * 3.6).toFixed(1) + " km/h" : "N/A"}
+- Power: ${avgWatts > 0 ? avgWatts + " W (" + wKg + " W/kg)" : "N/A"}
+- Cadence: ${avgCadence > 0 ? avgCadence + " rpm" : "N/A"}
 
 DATA DECOUPLING (Paruh Awal vs Akhir):
 ${decouplingText}
