@@ -205,7 +205,7 @@ export function ActivityChart({ data }: ActivityChartProps) {
                 tickLine={{ stroke: color, opacity: 0.5 }}
               />
               <Tooltip 
-                content={(props) => <CustomTooltip {...props} metricLabel={label} unit={unit} />} 
+                content={(props: any) => <CustomTooltip {...props} metricLabel={label} unit={unit} />} 
               />
               <Area
                 type="monotone"

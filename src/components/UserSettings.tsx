@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useUserStore } from "@/store/userStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,7 +107,15 @@ export function UserSettings() {
             <div className="flex items-center justify-between p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
               <div className="flex items-center gap-3">
                 {session.user?.image && (
-                    <img src={session.user.image} alt="Avatar" className="w-8 h-8 rounded-full" />
+                    <div className="relative h-8 w-8">
+                      <Image 
+                        src={session.user.image} 
+                        alt="Avatar" 
+                        fill 
+                        className="rounded-full object-cover"
+                        unoptimized
+                      />
+                    </div>
                 )}
                 <div>
                     <p className="font-medium text-blue-500">Terhubung sebagai {session.user?.name}</p>

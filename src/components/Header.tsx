@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Activity, Settings, User } from "lucide-react";
 import { auth } from "@/lib/auth";
@@ -35,7 +36,15 @@ export async function Header() {
                    {session.user?.name}
                  </span>
                  {session.user?.image && (
-                   <img src={session.user.image} alt="User" className="h-6 w-6 rounded-full" />
+                   <div className="relative h-6 w-6">
+                     <Image 
+                       src={session.user.image} 
+                       alt="User" 
+                       fill 
+                       className="rounded-full object-cover" 
+                       unoptimized 
+                     />
+                   </div>
                  )}
               </div>
             ) : (
