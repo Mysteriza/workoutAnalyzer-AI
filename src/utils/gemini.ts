@@ -15,6 +15,7 @@ STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 
 ## ANALISIS ZONA & DAMPAK TUBUH
 - Max HR (Estimasi Tanaka): [Angka] bpm
+- Max HR (Sesi Ini): [Angka] bpm (Jika tersedia)
 - Heart Rate Reserve (HRR): [Angka] bpm
 - Zona Dominan: Zona [X] ([Nama Zona])
 - Penjelasan Awam: [Jelaskan efek fisiologis zona ini. Misal: "Zona pembakaran lemak" atau "Zona ambang laktat" dengan bahasa simpel].
@@ -58,17 +59,18 @@ export function buildAnalysisPrompt(
   const hrr = hrMaxTanaka - userProfile.restingHeartRate;
   
   // 2. Data Preparation
+  // Prioritize Strava Summary fields for accuracy, fallback to stream calculation
   const validHr = streamSample.filter(d => d.heartrate && d.heartrate > 0).map(d => d.heartrate!);
-  const avgHr = validHr.length ? Math.round(validHr.reduce((a, b) => a + b, 0) / validHr.length) : (activity.average_heartrate || 0);
+  const avgHr = activity.average_heartrate || (validHr.length ? Math.round(validHr.reduce((a, b) => a + b, 0) / validHr.length) : 0);
   
   const validSpeed = streamSample.filter(d => d.speed && d.speed > 0).map(d => d.speed!);
-  const avgSpeed = validSpeed.length ? validSpeed.reduce((a, b) => a + b, 0) / validSpeed.length : activity.average_speed;
+  const avgSpeed = activity.average_speed || (validSpeed.length ? validSpeed.reduce((a, b) => a + b, 0) / validSpeed.length : 0);
   
   const validWatts = streamSample.filter(d => d.watts && d.watts > 0).map(d => d.watts!);
-  const avgWatts = validWatts.length ? Math.round(validWatts.reduce((a, b) => a + b, 0) / validWatts.length) : (activity.average_watts || 0);
+  const avgWatts = activity.average_watts || (validWatts.length ? Math.round(validWatts.reduce((a, b) => a + b, 0) / validWatts.length) : 0);
   
   const validCadence = streamSample.filter(d => d.cadence && d.cadence > 0).map(d => d.cadence!);
-  const avgCadence = validCadence.length ? Math.round(validCadence.reduce((a, b) => a + b, 0) / validCadence.length) : (activity.average_cadence || 0);
+  const avgCadence = activity.average_cadence || (validCadence.length ? Math.round(validCadence.reduce((a, b) => a + b, 0) / validCadence.length) : 0);
 
   // 3. Robust Decoupling Analysis
   let decouplingText = "Data tidak cukup untuk analisis decoupling yang akurat.";
