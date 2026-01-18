@@ -87,15 +87,43 @@ _Note: The actual prompt in the code is customized to output in **Indonesian** t
     ```
 
 3.  **Environment Setup**:
-    Create a `.env.local` file in the root directory:
+    Create a `.env.local` file in the root directory.
+
+    ### A. Get Strava API Credentials
+    1.  Log in to [Strava Settings](https://www.strava.com/settings/api).
+    2.  Create an Application (Category: "Other", Club: empty).
+    3.  **Authorization Callback Domain**: `localhost` (for dev) or your domain (for prod).
+    4.  Copy **Client ID** and **Client Secret**.
+
+    ### B. Get Google Gemini API Key
+    1.  Go to [Google AI Studio](https://aistudio.google.com/).
+    2.  Click **Get API Key**.
+    3.  Create a key in a new project.
+    4.  _Note: Free tier is sufficient for personal use._
+
+    ### C. Get MongoDB URI
+    1.  Create a free cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas).
+    2.  Create a Database User (Username/Password).
+    3.  **Network Access**: Allow IP `0.0.0.0/0`.
+    4.  Get Connection String: `Connect -> Drivers -> Node.js`.
+
+    ### D. Generate Auth Secret
+
+    Run this in terminal to generate a secure secret:
+
+    ```bash
+    openssl rand -base64 32
+    ```
+
+    ### Fill `.env.local`
 
     ```env
-    STRAVA_CLIENT_ID=your_strava_client_id
-    STRAVA_CLIENT_SECRET=your_strava_client_secret
-    GEMINI_API_KEY=your_gemini_api_key
+    STRAVA_CLIENT_ID=12345
+    STRAVA_CLIENT_SECRET=abc123...
+    GEMINI_API_KEY=AIzaSy...
     NEXT_PUBLIC_BASE_URL=http://localhost:3000
-    MONGODB_URI=your_mongodb_connection_string
-    AUTH_SECRET=your_generated_secret_key
+    MONGODB_URI=mongodb+srv://user:pass@cluster...
+    AUTH_SECRET=your_generated_secret
     ```
 
 4.  **Run Development Server**:

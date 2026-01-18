@@ -44,13 +44,44 @@ npm install
 
 2. Konfigurasi environment variables di `.env.local`:
 
+### A. Mendapatkan Strava API
+
+1. Login ke [Strava Settings API](https://www.strava.com/settings/api).
+2. Buat Aplikasi Baru.
+3. **Authorization Callback Domain**: Isi `localhost` (untuk development).
+4. Salin **Client ID** dan **Client Secret**.
+
+### B. Mendapatkan Google Gemini API
+
+1. Buka [Google AI Studio](https://aistudio.google.com/).
+2. Klik **Get API Key** -> **Create API Key**.
+3. Salin key yang dimulai dengan `AIza...`.
+
+### C. Setup MongoDB Atlas
+
+1. Buat akun di [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (Free Tier).
+2. Buat Cluster baru.
+3. **Database Access**: Buat user & password database.
+4. **Network Access**: Whitelist IP `0.0.0.0/0` (Allow from Anywhere).
+5. Klik **Connect** -> **Drivers** -> Copy connection string (ganti `<password>` dengan password user tadi).
+
+### D. Generate Auth Secret
+
+Jalankan perintah ini di terminal untuk membuat secret key aman:
+
+```bash
+openssl rand -base64 32
+```
+
+### Isi File `.env.local`
+
 ```env
-STRAVA_CLIENT_ID=your_strava_client_id
-STRAVA_CLIENT_SECRET=your_strava_client_secret
-GEMINI_API_KEY=your_gemini_api_key
+STRAVA_CLIENT_ID=12345
+STRAVA_CLIENT_SECRET=abc123...
+GEMINI_API_KEY=AIzaSy...
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
-MONGODB_URI=your_mongodb_connection_string
-AUTH_SECRET=your_generated_secret_key
+MONGODB_URI=mongodb+srv://user:pass@cluster...
+AUTH_SECRET=your_generated_secret
 ```
 
 3. Jalankan development server:
