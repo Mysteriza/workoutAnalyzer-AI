@@ -3,7 +3,7 @@ import { StravaActivity, ChartDataPoint, StreamData, ActivityDetail } from "@/ty
 import { 
   getCachedActivities, 
   setCachedActivities, 
-  shouldRefreshActivities,
+  hasCachedActivities,
   mergeActivities 
 } from "@/utils/storage";
 
@@ -14,9 +14,8 @@ interface ActivityState {
   streamData: ChartDataPoint[];
   isLoading: boolean;
   error: string | null;
-  lastFetchTime: Date | null;
   
-  fetchActivities: (accessToken: string, forceRefresh?: boolean) => Promise<void>;
+  fetchActivities: (accessToken: string) => Promise<void>;
   fetchActivityDetail: (activityId: number, accessToken: string) => Promise<void>;
   fetchStreams: (activityId: number, accessToken: string) => Promise<void>;
   setSelectedActivity: (activity: StravaActivity | null) => void;
@@ -31,7 +30,6 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   streamData: [],
   isLoading: false,
   error: null,
-  lastFetchTime: null,
 
   initializeFromCache: () => {
     const cached = getCachedActivities();
@@ -40,10 +38,9 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     }
   },
 
-  fetchActivities: async (accessToken: string, forceRefresh = false) => {
-    const { activities: currentActivities } = get();
-    
-    if (!forceRefresh && !shouldRefreshActivities() && currentActivities.length > 0) {
+  fetchActivities: async (accessToken: string) => {
+    if (!accessToken || typeof accessToken !== "string") {
+      set({ error: "Invalid access token" });
       return;
     }
 
@@ -62,6 +59,11 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       }
 
       const fetchedActivities: StravaActivity[] = await response.json();
+      
+      if (!Array.isArray(fetchedActivities)) {
+        throw new Error("Invalid response from Strava API");
+      }
+      
       const cachedActivities = getCachedActivities();
       const mergedActivities = mergeActivities(cachedActivities, fetchedActivities);
       
@@ -69,7 +71,6 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       set({ 
         activities: mergedActivities, 
         isLoading: false,
-        lastFetchTime: new Date(),
       });
     } catch (err) {
       const cached = getCachedActivities();
@@ -82,6 +83,16 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   },
 
   fetchActivityDetail: async (activityId: number, accessToken: string) => {
+    if (!Number.isInteger(activityId) || activityId <= 0) {
+      set({ error: "Invalid activity ID" });
+      return;
+    }
+    
+    if (!accessToken || typeof accessToken !== "string") {
+      set({ error: "Invalid access token" });
+      return;
+    }
+
     set({ isLoading: true, error: null });
     
     try {
@@ -97,6 +108,10 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       }
 
       const data: ActivityDetail = await response.json();
+      
+      if (!data || !data.activity) {
+        throw new Error("Invalid response from Strava API");
+      }
       
       const streams: StreamData = data.streams || { time: [], distance: [] };
       const chartData: ChartDataPoint[] = [];

@@ -93,8 +93,9 @@ export function ExportDataButton({ activityDetail, activityName }: ExportDataBut
 
   return (
     <Button variant="outline" size="sm" onClick={handleExport}>
-      <Download className="h-4 w-4 sm:mr-1" />
-      <span className="hidden sm:inline">Export</span>
+      <Download className="h-4 w-4 mr-1.5" />
+      <span className="hidden sm:inline">Export Data Aktivitas</span>
+      <span className="sm:hidden">Export</span>
     </Button>
   );
 }

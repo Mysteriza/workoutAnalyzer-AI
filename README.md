@@ -54,6 +54,13 @@ npm run dev
 
 4. Buka `http://localhost:3000` di browser.
 
+**Untuk production:**
+
+```bash
+npm run build
+npm start
+```
+
 ## Strava API Setup
 
 1. Buka [Strava API Settings](https://www.strava.com/settings/api)

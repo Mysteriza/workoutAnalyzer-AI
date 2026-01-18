@@ -54,6 +54,8 @@ export function isTokenExpired(tokens: StravaTokens): boolean {
 
 export function getSavedAnalysis(activityId: number): SavedAnalysis | null {
   if (typeof window === "undefined") return null;
+  if (!Number.isInteger(activityId) || activityId <= 0) return null;
+  
   const stored = localStorage.getItem(SAVED_ANALYSES_KEY);
   if (!stored) return null;
   try {
@@ -66,6 +68,9 @@ export function getSavedAnalysis(activityId: number): SavedAnalysis | null {
 
 export function saveAnalysis(activityId: number, content: string): void {
   if (typeof window === "undefined") return;
+  if (!Number.isInteger(activityId) || activityId <= 0) return;
+  if (!content || typeof content !== "string") return;
+  
   const stored = localStorage.getItem(SAVED_ANALYSES_KEY);
   let analyses: SavedAnalysis[] = [];
   
@@ -80,7 +85,7 @@ export function saveAnalysis(activityId: number, content: string): void {
   const existingIndex = analyses.findIndex(a => a.activityId === activityId);
   const newAnalysis: SavedAnalysis = {
     activityId,
-    content,
+    content: content.substring(0, 50000),
     analyzedAt: new Date().toISOString(),
   };
   
@@ -90,11 +95,17 @@ export function saveAnalysis(activityId: number, content: string): void {
     analyses.push(newAnalysis);
   }
   
+  if (analyses.length > 100) {
+    analyses = analyses.slice(-100);
+  }
+  
   localStorage.setItem(SAVED_ANALYSES_KEY, JSON.stringify(analyses));
 }
 
 export function deleteAnalysis(activityId: number): void {
   if (typeof window === "undefined") return;
+  if (!Number.isInteger(activityId) || activityId <= 0) return;
+  
   const stored = localStorage.getItem(SAVED_ANALYSES_KEY);
   if (!stored) return;
   
@@ -131,7 +142,17 @@ export function getCachedActivities(): StravaActivity[] {
 
 export function setCachedActivities(activities: StravaActivity[]): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(CACHED_ACTIVITIES_KEY, JSON.stringify(activities));
+  if (!Array.isArray(activities)) return;
+  
+  const validActivities = activities.filter(a => 
+    a && typeof a.id === "number" && a.id > 0
+  );
+  
+  if (validActivities.length > 200) {
+    validActivities.splice(200);
+  }
+  
+  localStorage.setItem(CACHED_ACTIVITIES_KEY, JSON.stringify(validActivities));
   localStorage.setItem(ACTIVITIES_LAST_FETCH_KEY, new Date().toISOString());
 }
 
@@ -146,23 +167,24 @@ export function getActivitiesLastFetch(): Date | null {
   }
 }
 
-export function shouldRefreshActivities(): boolean {
-  const lastFetch = getActivitiesLastFetch();
-  if (!lastFetch) return true;
-  
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-  return lastFetch < fiveMinutesAgo;
+export function hasCachedActivities(): boolean {
+  const cached = getCachedActivities();
+  return cached.length > 0;
 }
 
 export function mergeActivities(cached: StravaActivity[], fetched: StravaActivity[]): StravaActivity[] {
   const merged = new Map<number, StravaActivity>();
   
   cached.forEach(activity => {
-    merged.set(activity.id, activity);
+    if (activity && activity.id) {
+      merged.set(activity.id, activity);
+    }
   });
   
   fetched.forEach(activity => {
-    merged.set(activity.id, activity);
+    if (activity && activity.id) {
+      merged.set(activity.id, activity);
+    }
   });
   
   return Array.from(merged.values()).sort((a, b) => 
@@ -172,6 +194,15 @@ export function mergeActivities(cached: StravaActivity[], fetched: StravaActivit
 
 export function clearCachedActivities(): void {
   if (typeof window === "undefined") return;
+  localStorage.removeItem(CACHED_ACTIVITIES_KEY);
+  localStorage.removeItem(ACTIVITIES_LAST_FETCH_KEY);
+}
+
+export function clearAllData(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(USER_PROFILE_KEY);
+  localStorage.removeItem(STRAVA_TOKENS_KEY);
+  localStorage.removeItem(SAVED_ANALYSES_KEY);
   localStorage.removeItem(CACHED_ACTIVITIES_KEY);
   localStorage.removeItem(ACTIVITIES_LAST_FETCH_KEY);
 }

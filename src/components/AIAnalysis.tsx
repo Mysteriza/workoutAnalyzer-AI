@@ -211,7 +211,7 @@ ${analysis}
               </Button>
               <Button variant="outline" size="sm" onClick={handleExport}>
                 <Download className="h-3 w-3 mr-1" />
-                Export
+                Export Analisis AI
               </Button>
               <Button variant="destructive" size="sm" onClick={handleDelete}>
                 <Trash2 className="h-3 w-3 mr-1" />

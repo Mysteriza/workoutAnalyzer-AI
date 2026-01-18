@@ -172,75 +172,75 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4">
         <Card className="glass">
-          <CardContent className="p-2 sm:p-3">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="p-1.5 rounded bg-blue-500/20 flex-shrink-0">
-                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded bg-blue-500/20 flex-shrink-0">
+                <MapPin className="h-4 w-4 text-blue-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Jarak</p>
-                <p className="text-xs sm:text-sm font-bold truncate">{formatDistance(activity.distance)}</p>
+                <p className="text-xs text-muted-foreground">Jarak</p>
+                <p className="text-sm font-bold truncate">{formatDistance(activity.distance)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="glass">
-          <CardContent className="p-2 sm:p-3">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="p-1.5 rounded bg-green-500/20 flex-shrink-0">
-                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-green-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded bg-green-500/20 flex-shrink-0">
+                <Clock className="h-4 w-4 text-green-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Durasi</p>
-                <p className="text-xs sm:text-sm font-bold truncate">{formatDuration(activity.moving_time)}</p>
+                <p className="text-xs text-muted-foreground">Durasi</p>
+                <p className="text-sm font-bold truncate">{formatDuration(activity.moving_time)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="glass">
-          <CardContent className="p-2 sm:p-3">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="p-1.5 rounded bg-yellow-500/20 flex-shrink-0">
-                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded bg-yellow-500/20 flex-shrink-0">
+                <TrendingUp className="h-4 w-4 text-yellow-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Elevasi</p>
-                <p className="text-xs sm:text-sm font-bold truncate">{Math.round(activity.total_elevation_gain)} m</p>
+                <p className="text-xs text-muted-foreground">Elevasi</p>
+                <p className="text-sm font-bold truncate">{Math.round(activity.total_elevation_gain)} m</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="glass">
-          <CardContent className="p-2 sm:p-3">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="p-1.5 rounded bg-cyan-500/20 flex-shrink-0">
-                <Gauge className="h-3 w-3 sm:h-4 sm:w-4 text-cyan-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded bg-cyan-500/20 flex-shrink-0">
+                <Gauge className="h-4 w-4 text-cyan-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Speed</p>
-                <p className="text-xs sm:text-sm font-bold truncate">{formatSpeed(activity.average_speed)}</p>
+                <p className="text-xs text-muted-foreground">Speed</p>
+                <p className="text-sm font-bold truncate">{formatSpeed(activity.average_speed)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4">
         {activity.has_heartrate && activity.average_heartrate && (
           <Card className="glass">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1.5 rounded bg-red-500/20 flex-shrink-0">
-                  <Heart className="h-3 w-3 sm:h-4 sm:w-4 text-red-400" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-red-500/20 flex-shrink-0">
+                  <Heart className="h-4 w-4 text-red-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Avg HR</p>
-                  <p className="text-xs sm:text-sm font-bold truncate">{Math.round(activity.average_heartrate)}</p>
+                  <p className="text-xs text-muted-foreground">Avg HR</p>
+                  <p className="text-sm font-bold truncate">{Math.round(activity.average_heartrate)}</p>
                 </div>
               </div>
             </CardContent>
@@ -249,14 +249,14 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
 
         {activity.has_heartrate && activity.max_heartrate && (
           <Card className="glass">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1.5 rounded bg-red-600/20 flex-shrink-0">
-                  <Heart className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-red-600/20 flex-shrink-0">
+                  <Heart className="h-4 w-4 text-red-500" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Max HR</p>
-                  <p className="text-xs sm:text-sm font-bold truncate">{Math.round(activity.max_heartrate)}</p>
+                  <p className="text-xs text-muted-foreground">Max HR</p>
+                  <p className="text-sm font-bold truncate">{Math.round(activity.max_heartrate)}</p>
                 </div>
               </div>
             </CardContent>
@@ -265,14 +265,14 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
 
         {activity.average_watts && (
           <Card className="glass">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1.5 rounded bg-yellow-500/20 flex-shrink-0">
-                  <Zap className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-yellow-500/20 flex-shrink-0">
+                  <Zap className="h-4 w-4 text-yellow-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Power</p>
-                  <p className="text-xs sm:text-sm font-bold truncate">{Math.round(activity.average_watts)} W</p>
+                  <p className="text-xs text-muted-foreground">Power</p>
+                  <p className="text-sm font-bold truncate">{Math.round(activity.average_watts)} W</p>
                 </div>
               </div>
             </CardContent>
@@ -281,14 +281,14 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
 
         {activity.average_cadence && (
           <Card className="glass">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1.5 rounded bg-indigo-500/20 flex-shrink-0">
-                  <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-400" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-indigo-500/20 flex-shrink-0">
+                  <RotateCcw className="h-4 w-4 text-indigo-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Cadence</p>
-                  <p className="text-xs sm:text-sm font-bold truncate">
+                  <p className="text-xs text-muted-foreground">Cadence</p>
+                  <p className="text-sm font-bold truncate">
                     {Math.round(activity.type === "Run" ? activity.average_cadence * 2 : activity.average_cadence)}
                   </p>
                 </div>
@@ -299,14 +299,14 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
 
         {activity.calories && (
           <Card className="glass">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1.5 rounded bg-rose-500/20 flex-shrink-0">
-                  <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-rose-400" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-rose-500/20 flex-shrink-0">
+                  <Flame className="h-4 w-4 text-rose-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Kalori</p>
-                  <p className="text-xs sm:text-sm font-bold truncate">{Math.round(activity.calories)}</p>
+                  <p className="text-xs text-muted-foreground">Kalori</p>
+                  <p className="text-sm font-bold truncate">{Math.round(activity.calories)}</p>
                 </div>
               </div>
             </CardContent>
@@ -315,14 +315,14 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
 
         {activity.kilojoules && (
           <Card className="glass">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1.5 rounded bg-amber-500/20 flex-shrink-0">
-                  <Zap className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-amber-500/20 flex-shrink-0">
+                  <Zap className="h-4 w-4 text-amber-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Energy</p>
-                  <p className="text-xs sm:text-sm font-bold truncate">{Math.round(activity.kilojoules)} kJ</p>
+                  <p className="text-xs text-muted-foreground">Energy</p>
+                  <p className="text-sm font-bold truncate">{Math.round(activity.kilojoules)} kJ</p>
                 </div>
               </div>
             </CardContent>
@@ -331,14 +331,14 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
 
         {(activity.elev_high || activity.elev_low) && (
           <Card className="glass">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1.5 rounded bg-emerald-500/20 flex-shrink-0">
-                  <Mountain className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-400" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-emerald-500/20 flex-shrink-0">
+                  <Mountain className="h-4 w-4 text-emerald-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Elev Range</p>
-                  <p className="text-xs sm:text-sm font-bold truncate">
+                  <p className="text-xs text-muted-foreground">Elev Range</p>
+                  <p className="text-sm font-bold truncate">
                     {Math.round(activity.elev_low || 0)}-{Math.round(activity.elev_high || 0)}
                   </p>
                 </div>
@@ -349,14 +349,14 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
 
         {activity.max_speed && (
           <Card className="glass">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1.5 rounded bg-cyan-600/20 flex-shrink-0">
-                  <Gauge className="h-3 w-3 sm:h-4 sm:w-4 text-cyan-500" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-cyan-600/20 flex-shrink-0">
+                  <Gauge className="h-4 w-4 text-cyan-500" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Max Speed</p>
-                  <p className="text-xs sm:text-sm font-bold truncate">{formatSpeed(activity.max_speed)}</p>
+                  <p className="text-xs text-muted-foreground">Max Speed</p>
+                  <p className="text-sm font-bold truncate">{formatSpeed(activity.max_speed)}</p>
                 </div>
               </div>
             </CardContent>
@@ -365,14 +365,14 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
 
         {(activity.type === "Run" || activity.sport_type === "Run") && (
           <Card className="glass">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1.5 rounded bg-purple-500/20 flex-shrink-0">
-                  <Timer className="h-3 w-3 sm:h-4 sm:w-4 text-purple-400" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-purple-500/20 flex-shrink-0">
+                  <Timer className="h-4 w-4 text-purple-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Pace</p>
-                  <p className="text-xs sm:text-sm font-bold truncate">{formatPace(activity.average_speed)}</p>
+                  <p className="text-xs text-muted-foreground">Pace</p>
+                  <p className="text-sm font-bold truncate">{formatPace(activity.average_speed)}</p>
                 </div>
               </div>
             </CardContent>
@@ -381,14 +381,14 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
 
         {activity.kudos_count > 0 && (
           <Card className="glass">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1.5 rounded bg-orange-500/20 flex-shrink-0">
-                  <ThumbsUp className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-orange-500/20 flex-shrink-0">
+                  <ThumbsUp className="h-4 w-4 text-orange-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Kudos</p>
-                  <p className="text-xs sm:text-sm font-bold truncate">{activity.kudos_count}</p>
+                  <p className="text-xs text-muted-foreground">Kudos</p>
+                  <p className="text-sm font-bold truncate">{activity.kudos_count}</p>
                 </div>
               </div>
             </CardContent>
@@ -397,10 +397,10 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
       </div>
 
       <Tabs defaultValue="chart" className="mb-4">
-        <TabsList className="grid w-full grid-cols-3 h-9">
-          <TabsTrigger value="chart" className="text-xs sm:text-sm">Chart</TabsTrigger>
-          <TabsTrigger value="segments" className="text-xs sm:text-sm">Segments</TabsTrigger>
-          <TabsTrigger value="splits" className="text-xs sm:text-sm">Splits</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-muted/50 backdrop-blur-sm">
+          <TabsTrigger value="chart" className="text-xs sm:text-sm py-2">Chart</TabsTrigger>
+          <TabsTrigger value="segments" className="text-xs sm:text-sm py-2">Segments</TabsTrigger>
+          <TabsTrigger value="splits" className="text-xs sm:text-sm py-2">Splits</TabsTrigger>
         </TabsList>
         
         <TabsContent value="chart" className="mt-3">
