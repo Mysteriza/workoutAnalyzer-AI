@@ -1,4 +1,6 @@
-# AI Workout Analyzer
+# Workout Analyzer AI
+
+**[Bahasa Indonesia](README.md) | [English](README-EN.md)**
 
 Aplikasi web personal untuk menarik data olahraga dari Strava, memvisualisasikan metrik dengan chart interaktif, dan mendapatkan analisis fisiologis mendalam menggunakan Google Gemini AI.
 
@@ -33,6 +35,7 @@ Aplikasi web personal untuk menarik data olahraga dari Strava, memvisualisasikan
 1. Clone repository dan install dependencies:
 
 ```bash
+git clone https://github.com/Mysteriza/workoutAnalyzer-AI.git
 cd workoutAnalyzer-AI
 npm install
 ```
@@ -74,16 +77,15 @@ npm start
 2. Isi data fisiologis Anda (usia, berat badan, tinggi, resting heart rate)
 3. Klik **Hubungkan ke Strava** untuk autentikasi
 4. Setelah terkoneksi, kembali ke Dashboard untuk melihat aktivitas
-5. Aktivitas akan di-cache secara otomatis untuk mengurangi API request
-6. Klik tombol **Refresh** untuk memaksa update dari Strava
-7. Klik aktivitas untuk melihat detail lengkap termasuk:
+5. Klik **Refresh** untuk menarik data terbaru dari Strava (Cache tidak update otomatis)
+6. Klik aktivitas untuk melihat detail lengkap termasuk:
    - Metrik utama (jarak, durasi, elevasi, speed, HR, power)
    - Chart interaktif Heart Rate & Speed
    - Segment efforts dengan PR dan achievements
    - Splits per-km dengan pace analysis
-8. Klik **Analisis Aktivitas** untuk mendapatkan AI analysis
-9. Hasil analisis otomatis tersimpan dan dapat di-export ke markdown
-10. Klik **Export** untuk menyimpan data aktivitas ke JSON
+7. Klik **Analisis Aktivitas** untuk mendapatkan AI analysis
+8. Hasil analisis otomatis tersimpan dan dapat di-export ke markdown
+9. Klik **Export** untuk menyimpan data aktivitas ke JSON
 
 ## AI Analysis Features
 
@@ -99,8 +101,7 @@ AI Analysis memberikan insight mendalam termasuk:
 ## Data Caching
 
 - Aktivitas di-cache di localStorage
-- Cache diperbarui otomatis setiap 5 menit
-- Tombol Refresh untuk memaksa update
+- Cache hanya diperbarui saat user menekan tombol Refresh
 - Analisis AI tersimpan per-aktivitas
 
 ## Data yang Ditampilkan
@@ -152,9 +153,9 @@ src/
 ├── types/
 │   └── index.ts
 └── utils/
-    ├── gemini.ts
-    ├── storage.ts
-    └── strava.ts
+│   ├── gemini.ts
+│   ├── storage.ts
+│   └── strava.ts
 ```
 
 ## Dependencies
@@ -166,5 +167,5 @@ src/
 - `lucide-react` - Icon library
 - `zustand` - State management
 - `react-markdown` - Markdown renderer
-- `@radix-ui/react-label`, `@radix-ui/react-slot`, `@radix-ui/react-tabs` - Shadcn UI primitives
+- `@radix-ui/react-label`, `@radix-ui/react-slot`, `@radix-ui/react-tabs`, `@radix-ui/react-select` - Shadcn UI primitives
 - `class-variance-authority`, `clsx`, `tailwind-merge` - Styling utilities

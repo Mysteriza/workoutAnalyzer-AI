@@ -1,134 +1,140 @@
 import { AnalysisRequest, ChartDataPoint, UserProfile, StravaActivity } from "@/types";
 
-const SYSTEM_PROMPT = `Anda adalah "Elite Performance Physiologist" yang menangani atlet profesional. Gaya analisis Anda: KRITIS, OBJEKTIF, BERBASIS DATA, DAN TIDAK KENAL AMPUN.
-Tugas Anda adalah membedah data latihan untuk menemukan kelemahan fisiologis, kesalahan pacing, dan kegagalan nutrisi. Jangan berikan pujian kosong.
+const SYSTEM_PROMPT = `Anda adalah seorang "Performance Coach" berpengalaman yang suportif, analitis, dan edukatif.
+Tugas Anda: Menganalisis data latihan (Sepeda, Jalan/Trekking, Lari, Hike, dll) secara mendalam, objektif, dan memberikan konteks "Sebab-Akibat".
 
-STRUKTUR OUTPUT MUTLAK (JANGAN UBAH HEADER):
+FILOSOFI COACHING:
+- **Konteks adalah Raja**: Pertimbangkan jenis aktivitas dan gear. Speed 15km/h itu lambat untuk Road Bike, tapi cepat untuk MTB di jalur offroad maupun onroad, dan mustahil untuk Hiking.
+- **Suportif namun Jujur**: Jika performa turun, katakan. Tapi jelaskan penyebabnya (misal: "Salah pacing di awal") dan beri solusi.
+- **Edukasi Awam**: Jelaskan istilah teknis. Jangan hanya bilang "Decoupling tinggi", tapi jelaskan "Jantung Anda kerja makin keras padahal speed makin pelan, tanda bensin habis".
 
-## RINGKASAN EKSEKUTIF
-[Analisis tajam paruh pertama vs kedua. Hubungkan jenis gear (sepeda/sepatu) dengan medan dan data output. Apakah atlet "meledak" (bonking)? Apakah pacing hancur? Jelaskan dalam 3-4 kalimat padat]
+STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 
-## ANALISIS ZONA JANTUNG DAN FISIOLOGI
-- Estimasi Max HR (Tanaka): [Angka] bpm
+## RINGKASAN & QUALITY SCORE
+[Berikan 1 paragraf ringkasan "big picture". Beri nilai kualitas sesi 1-10. Apakah tujuan sesi tercapai? Apakah gear yang digunakan (misal: MTB vs Road Bike) mempengaruhi hasil?]
+
+## ANALISIS ZONA & DAMPAK TUBUH
+- Max HR (Estimasi Tanaka): [Angka] bpm
 - Heart Rate Reserve (HRR): [Angka] bpm
-- Zona Dominan: Zona [X] ([Nama Zona]) - [Angka]% HRR
-- Efek Fisiologis: [Analisis dampak spesifik zona ini terhadap mitokondria, kapilerisasi, atau sistem saraf pusat (CNS). Apakah sesi ini membangun base atau justru merusak pemulihan?]
+- Zona Dominan: Zona [X] ([Nama Zona])
+- Penjelasan Awam: [Jelaskan efek fisiologis zona ini. Misal: "Zona pembakaran lemak" atau "Zona ambang laktat" dengan bahasa simpel].
 
-## BEDAH PERFORMA
-- Analisis Decoupling:
-  - Speed Drop: [Angka]% (Bandingkan paruh pertama vs kedua)
-  - HR Drift: [Angka]% (Kenaikan HR di paruh kedua dengan speed konstan/turun)
-  - Diagnosis: [BONKING/CARDIAC DRIFT/AEROBIC DEFICIENCY]. Jelaskan penyebabnya (dehidrasi, deplesi glikogen, atau kurang base).
-- Efisiensi Mekanik:
-  - Power-to-Weight (jika ada watts): [Angka] W/kg. (Evaluasi: Rendah/Sedang/Elit untuk HR tersebut?)
-  - Cadence Analysis: [Angka] rpm. (Evaluasi: Grinding vs Spinning? Efeknya ke otot vs jantung?)
-- Status Risiko: [LOW/MEDIUM/HIGH/CRITICAL]. (Risiko overtraining, cedera sendi, atau burnout CNS).
+## DETEKTIF PERFORMA
+- **Konteks Gear & Medan**: [Analisis bagaimana sepeda/sepatu yang dipakai mempengaruhi speed/power. Apakah rutenya menanjak?].
+- **Pacing & Stamina (Decoupling)**:
+  - Data: Speed Drop [Angka]%, HR Drift [Angka]%.
+  - Diagnosis: [Sebutkan apa yang terjadi. Misal: "Bonking", "Pacing Jempolan", atau "Kelelahan Otot"].
+  - Penjelasan Sebab-Akibat: [Jelaskan alurnya. Cth: "Karena Anda menekan terlalu keras di tanjakan awal (Sebab), detak jantung drift naik di akhir sesi (Akibat)."].
+- **Efisiensi Gerak**:
+  - Cadence ([Angka] rpm): [Analisis putaran kaki. Jika rendah (<60rpm) dan beban berat -> boros otot. Jika tinggi -> boros napas tapi hemat otot].
 
-## PROTOKOL NUTRISI DAN PEMULIHAN
-- Kebutuhan Karbohidrat: [Angka] gram (Target: 1.0-1.2g/kg BB untuk sesi >90 menit, 0.8g untuk <60 menit).
-- Kebutuhan Protein: [Angka] gram (Target: 0.3-0.4g/kg BB).
-- Hidrasi: [Angka] - [Angka] ml (Estimasi keringat).
-- ALASAN ILMIAH: [Jelaskan mekanisme spesifik: Resintesis glikogen, mTOR activation, Plasma volume restoration].
-- MENU KONKRET (WAJIB MAKANAN LOKAL INDONESIA):
-  - Opsi 1: [Nama Makanan] + [Gramasi Detail]
-  - Opsi 2: [Nama Makanan] + [Gramasi Detail]
+## PROTOKOL NUTRISI & RECOVERY (Menu Lokal)
+- Karbohidrat: [Angka] gram.
+- Protein: [Angka] gram.
+- Hidrasi: [Angka] ml.
+- Menu Rekomendasi (Indonesia):
+  - Opsi 1: [Makanan simpel & enak]
+  - Opsi 2: [Makanan simpel & enak]
 
-## RENCANA AKSI 24 JAM
-- Status Besok: [REST TOTAL / ACTIVE RECOVERY / LIGHT AEROBIC].
-- Rekomendasi Tidur: [Angka] jam. (Kaitkan dengan sekresi HGH/Perbaikan CNS).
-- Stretching/Mobility: [Sebutkan otot spesifik yang kaku berdasarkan jenis aktivitas].
-
-## PERINGATAN KRITIS
-[Temukan 1 kesalahan fatal dalam sesi ini. Contoh: "Speed drop 18% adalah tanda kegagalan pacing mutlak", atau "HR Max mencapai 98% di sesi endurance adalah kesalahan fatal"].
+## SARAN UNTUK SESI BERIKUTNYA
+- Pacing Strategy: [Saran konkret].
+- Gear/Teknik: [Saran penggunaan gear/stroke/cadence].
+- Fokus Latihan: [Area perbaikan].
 
 ATURAN TAMBAHAN:
-1.  Gunakan Bahasa Indonesia Formal & Tajam.
-2.  TIDAK ADA EMOJI.
-3.  TIDAK ADA BASA-BASI PEMBUKA/PENUTUP.
-4.  Fokus pada "WHY" (Mengapa hal ini terjadi secara fisiologis?).`;
+1. Bahasa Indonesia yang luwes, enak dibaca, mengalir.
+2. JANGAN pakai emoji.
+3. Pertimbangkan/bedakan **Jenis Aktivitas** (Jalan/Lari/Sepeda/Hike) dalam menilai Speed dan keseluruhan analisis. Jangan samakan standar speed lari dengan sepeda. Atau speed MTB dengan RB.`;
 
 export function buildAnalysisPrompt(
   activity: StravaActivity,
   streamSample: ChartDataPoint[],
   userProfile: UserProfile
 ): string {
-  // 1. Kalsulasi Dasar
+  // 1. Kalkulasi Dasar
   const hrMaxTanaka = Math.round(208 - (0.7 * userProfile.age));
   const hrr = hrMaxTanaka - userProfile.restingHeartRate;
   
-  // 2. Data Cleaning & Aggregation
-  const hrData = streamSample.filter(d => d.heartrate && d.heartrate > 0).map(d => d.heartrate!);
-  const avgHr = hrData.length > 0 ? Math.round(hrData.reduce((a, b) => a + b, 0) / hrData.length) : (activity.average_heartrate || 0);
-  const maxHr = activity.max_heartrate || Math.max(...hrData, 0);
-
-  const speedData = streamSample.filter(d => d.speed && d.speed > 0).map(d => d.speed!);
-  const avgSpeed = speedData.length > 0 ? speedData.reduce((a, b) => a + b, 0) / speedData.length : activity.average_speed;
+  // 2. Data Preparation
+  const validHr = streamSample.filter(d => d.heartrate && d.heartrate > 0).map(d => d.heartrate!);
+  const avgHr = validHr.length ? Math.round(validHr.reduce((a, b) => a + b, 0) / validHr.length) : (activity.average_heartrate || 0);
   
-  const wattsData = streamSample.filter(d => d.watts && d.watts > 0).map(d => d.watts!);
-  const avgWatts = wattsData.length > 0 ? Math.round(wattsData.reduce((a, b) => a + b, 0) / wattsData.length) : (activity.average_watts || 0);
+  const validSpeed = streamSample.filter(d => d.speed && d.speed > 0).map(d => d.speed!);
+  const avgSpeed = validSpeed.length ? validSpeed.reduce((a, b) => a + b, 0) / validSpeed.length : activity.average_speed;
   
-  const cadenceData = streamSample.filter(d => d.cadence && d.cadence > 0).map(d => d.cadence!);
-  const avgCadence = cadenceData.length > 0 ? Math.round(cadenceData.reduce((a, b) => a + b, 0) / cadenceData.length) : (activity.average_cadence || 0);
-
-  // 3. Decoupling Analysis (First Half vs Second Half)
-  const midpoint = Math.floor(streamSample.length / 2);
-  const part1 = streamSample.slice(0, midpoint);
-  const part2 = streamSample.slice(midpoint);
-
-  const getAvg = (arr: any[], key: string) => {
-    const valid = arr.filter(d => d[key] > 0).map(d => d[key]);
-    return valid.length ? valid.reduce((a: number, b: number) => a + b, 0) / valid.length : 0;
-  };
-
-  const avgSpeed1 = getAvg(part1, 'speed');
-  const avgSpeed2 = getAvg(part2, 'speed');
-  const avgHr1 = getAvg(part1, 'heartrate');
-  const avgHr2 = getAvg(part2, 'heartrate');
-  const avgWatts1 = getAvg(part1, 'watts');
-  const avgWatts2 = getAvg(part2, 'watts');
-
-  // Kalkulasi Persentase Perubahan
-  const calcChange = (v1: number, v2: number) => v1 > 0 ? ((v2 - v1) / v1) * 100 : 0;
+  const validWatts = streamSample.filter(d => d.watts && d.watts > 0).map(d => d.watts!);
+  const avgWatts = validWatts.length ? Math.round(validWatts.reduce((a, b) => a + b, 0) / validWatts.length) : (activity.average_watts || 0);
   
-  const speedDrop = calcChange(avgSpeed1, avgSpeed2).toFixed(1); // Usually negative if drop
-  const hrDrift = calcChange(avgHr1, avgHr2).toFixed(1); // Positive means drift up
-  const powerDrop = calcChange(avgWatts1, avgWatts2).toFixed(1);
+  const validCadence = streamSample.filter(d => d.cadence && d.cadence > 0).map(d => d.cadence!);
+  const avgCadence = validCadence.length ? Math.round(validCadence.reduce((a, b) => a + b, 0) / validCadence.length) : (activity.average_cadence || 0);
 
-  // 4. Power Metrics
-  const wKg = avgWatts > 0 ? (avgWatts / userProfile.weight).toFixed(2) : "N/A";
+  // 3. Robust Decoupling Analysis
+  let decouplingText = "Data tidak cukup untuk analisis decoupling yang akurat.";
+  let speedDropStr = "N/A";
+  let hrDriftStr = "N/A";
 
-  // 5. Context Strings
-  const activityDurationMin = Math.floor(activity.moving_time / 60);
-  const gearName = activity.gear ? (activity.gear.nickname || activity.gear.name) : "Unknown Gear";
-  
-  // Prompt Construction
+  if (streamSample.length >= 60) { // Minimal data points
+    const midpoint = Math.floor(streamSample.length / 2);
+    const part1 = streamSample.slice(0, midpoint);
+    const part2 = streamSample.slice(midpoint);
+
+    const getPartAvg = (arr: ChartDataPoint[], key: keyof ChartDataPoint) => {
+      const vals = arr.map(d => d[key]).filter((v): v is number => typeof v === 'number' && v > 0);
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    };
+
+    const avgSpeed1 = getPartAvg(part1, 'speed');
+    const avgSpeed2 = getPartAvg(part2, 'speed');
+    const avgHr1 = getPartAvg(part1, 'heartrate');
+    const avgHr2 = getPartAvg(part2, 'heartrate');
+
+    if (avgSpeed1 > 0 && avgHr1 > 0) {
+      const speedDrop = ((avgSpeed2 - avgSpeed1) / avgSpeed1) * 100;
+      const hrDrift = ((avgHr2 - avgHr1) / avgHr1) * 100;
+      
+      speedDropStr = `${speedDrop.toFixed(1)}%`;
+      hrDriftStr = `${hrDrift.toFixed(1)}%`;
+      
+      decouplingText = `
+- Speed Awal: ${(avgSpeed1 * 3.6).toFixed(1)} km/h -> Akhir: ${(avgSpeed2 * 3.6).toFixed(1)} km/h
+- HR Awal: ${Math.round(avgHr1)} bpm -> Akhir: ${Math.round(avgHr2)} bpm
+- CHANGE SPEED: ${speedDropStr} (Negatif = Drop)
+- CHANGE HR: ${hrDriftStr} (Positif = Drift)
+      `.trim();
+    }
+  }
+
+  // 4. Konteks
+  const durationMin = Math.floor(activity.moving_time / 60);
+  const gearName = activity.gear ? (activity.gear.nickname || activity.gear.name) : "Tidak ada gear khusus";
+  const wKg = avgWatts > 0 ? (avgWatts / userProfile.weight).toFixed(2) : "-";
+
   return `
-DATA PROFIL ATLET:
-- Usia: ${userProfile.age} th | Berat: ${userProfile.weight} kg | Tinggi: ${userProfile.height} cm
+PROFIL PENGGUNA:
+- Usia: ${userProfile.age} | Berat: ${userProfile.weight} kg
 - RHR: ${userProfile.restingHeartRate} bpm | Max HR (Est): ${hrMaxTanaka} bpm
 
-DATA SESI LATIHAN (${activity.type}):
+DATA SESI (${activity.type} - ${activity.sport_type}):
 - Nama: ${activity.name}
-- Durasi: ${activityDurationMin} menit
+- Durasi: ${durationMin} menit
 - Jarak: ${(activity.distance / 1000).toFixed(2)} km
-- Elevasi: ${activity.total_elevation_gain}m (Range: ${activity.elev_low}m - ${activity.elev_high}m)
-- Gear: ${gearName}
+- Elevasi: ${activity.total_elevation_gain} m
+- Gear/Sepeda/Sepatu: ${gearName}
 
-METRIK UTAMA:
-- HR: Avg ${avgHr} bpm (${((avgHr - userProfile.restingHeartRate)/hrr*100).toFixed(1)}% HRR) | Max ${maxHr} bpm
-- Speed: Avg ${(avgSpeed * 3.6).toFixed(1)} km/h | Max ${(activity.max_speed * 3.6).toFixed(1)} km/h
-- Power: Avg ${avgWatts} W (${wKg} W/kg) | Max ${activity.max_watts || 0} W
-- Cadence: Avg ${avgCadence} rpm
+METRIK RATA-RATA:
+- HR: ${avgHr} bpm (${((avgHr - userProfile.restingHeartRate)/hrr*100).toFixed(0)}% HRR)
+- Speed: ${(avgSpeed * 3.6).toFixed(1)} km/h
+- Power: ${avgWatts} W (${wKg} W/kg)
+- Cadence: ${avgCadence} rpm
 
-ANALISIS DECOUPLING (PARUH 1 vs PARUH 2):
-- Speed: ${(avgSpeed1 * 3.6).toFixed(1)} -> ${(avgSpeed2 * 3.6).toFixed(1)} km/h (Change: ${speedDrop}%)
-- HR: ${Math.round(avgHr1)} -> ${Math.round(avgHr2)} bpm (Change: ${hrDrift}%)
-${avgWatts > 0 ? `- Power: ${Math.round(avgWatts1)} -> ${Math.round(avgWatts2)} W (Change: ${powerDrop}%)` : ""}
+DATA DECOUPLING (Paruh Awal vs Akhir):
+${decouplingText}
 
-INSTRUKSI KHUSUS:
-- Jika Speed Drop < -10% dan HR stabil/naik -> VONIS: BONKING/KELELAHAN AKUT.
-- Jika HR naik > 5% tapi Speed/Power stabil -> VONIS: CARDIAC DRIFT (Dehidrasi/Fatigue).
-- Jika Power rendah (<2.0 W/kg) tapi HR tinggi (Zona 3/4) -> VONIS: EFISIENSI BURUK (Aerobic Base Lemah).
+CATATAN KHUSUS UNTUK AI:
+1. Jika Speed Drop > 10% dan HR naik/tetap, diagnosa sebagai "Fatigue/Bonking".
+2. Jika HR Drift > 5% dengan speed stabil, diagnosa sebagai "Cardiac Drift (Dehidrasi)".
+3. Pertimbangkan GEAR "${gearName}". Jika ini sepeda MTB, wajar speed lebih rendah dari Road Bike. Jika ini sepatu lari berat, wajar pace lebih lambat.
+4. Sesuaikan ekspektasi dengan jenis aktivitas "${activity.type}".
 `;
 }
 
@@ -141,7 +147,7 @@ export async function analyzeActivity(request: AnalysisRequest): Promise<string>
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to analyze activity");
+    throw new Error(error.error || "Gagal menganalisis aktivitas");
   }
 
   const data = await response.json();
