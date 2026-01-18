@@ -52,9 +52,4 @@ AUTH_SECRET=generate_a_random_string_here
 ## 3. Strava Callback Update (If needed)
 
 If you are just running on localhost, no change needed.
-However, for NextAuth, ensure your **Authorization Callback Domain** in Strava Settings includes `localhost` (it likely already does).
-
----
-
-**Next Steps for Developer (Me):**
-I will now proceed to implement the code to connect to this database and set up the authentication flow.
+However, for NextAuth, ensure your **Authorization Callback Domain** in Strava Settings includes `localhost`.
