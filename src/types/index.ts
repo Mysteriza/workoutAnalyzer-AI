@@ -3,6 +3,7 @@ export interface UserProfile {
   weight: number;
   height: number;
   restingHeartRate: number;
+  preferredActivity?: string;
 }
 
 export interface StravaTokens {

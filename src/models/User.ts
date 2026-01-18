@@ -32,6 +32,7 @@ const UserSchema: Schema<IUser> = new Schema(
       weight: { type: Number },
       height: { type: Number },
       restingHeartRate: { type: Number },
+      preferredActivity: { type: String },
     },
   },
   { timestamps: true }
