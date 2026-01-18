@@ -15,7 +15,7 @@ A personal web application to analyze Strava workout activities using Google Gem
   - Elevation & Gradient
   - Calories & Energy Output
   - Detailed Segment Efforts & Splits
-- **AI-Powered Coach**: Uses **Google Gemini 1.5 Flash** to analyze your workout data. The AI acts as a supportive yet objective coach, providing:
+- **AI-Powered Coach**: Uses **Gemini 3 Flash Preview** to analyze your workout data. The AI acts as a supportive yet objective coach, providing:
   - Physiological breakdown (HR Zones, Cardiac Drift)
   - Performance analysis (Decoupling, Efficiency, Pacing)
   - Actionable advice for future sessions
@@ -94,6 +94,8 @@ _Note: The actual prompt in the code is customized to output in **Indonesian** t
     STRAVA_CLIENT_SECRET=your_strava_client_secret
     GEMINI_API_KEY=your_gemini_api_key
     NEXT_PUBLIC_BASE_URL=http://localhost:3000
+    MONGODB_URI=your_mongodb_connection_string
+    AUTH_SECRET=your_generated_secret_key
     ```
 
 4.  **Run Development Server**:

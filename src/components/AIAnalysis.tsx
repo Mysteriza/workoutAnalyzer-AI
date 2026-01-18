@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +7,7 @@ import { StravaActivity, ChartDataPoint } from "@/types";
 import { analyzeActivity } from "@/utils/gemini";
 import { getSavedAnalysis, saveAnalysis, deleteAnalysis } from "@/utils/storage";
 import { Brain, Loader2, AlertCircle, Sparkles, Trash2, RefreshCw, Clock, Download } from "lucide-react";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 interface AIAnalysisProps {
   activity: StravaActivity;
@@ -16,45 +15,57 @@ interface AIAnalysisProps {
 }
 
 export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
-  const { profile } = useUserStore();
+  const { userProfile } = useUserStore();
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [analyzedAt, setAnalyzedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Modal States
+  const [showReAnalyzeModal, setShowReAnalyzeModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     const saved = getSavedAnalysis(activity.id);
-    if (saved) {
+    if (saved && saved.content && saved.content.trim().length > 0) {
       setAnalysis(saved.content);
       setAnalyzedAt(saved.analyzedAt);
     }
   }, [activity.id]);
 
-  const handleAnalyze = async () => {
-    if (!profile) {
-      setError("Lengkapi profil Anda di Settings terlebih dahulu.");
-      return;
-    }
+  const handleAnalyze = async (isReAnalyze = false) => {
+    if (!userProfile) return;
 
     setIsLoading(true);
     setError(null);
+    if (isReAnalyze) setAnalysis(null); // Clear previous only if re-analyzing
 
     try {
+      // 1. Prepare Data
       const sampleSize = Math.min(streamData.length, 200);
       const step = Math.max(1, Math.floor(streamData.length / sampleSize));
       const streamSample = streamData.filter((_, index) => index % step === 0);
 
+      // 2. Call API
       const result = await analyzeActivity({
         activity,
         streamSample,
-        userProfile: profile,
+        userProfile: userProfile,
       });
 
-      setAnalysis(result);
-      setAnalyzedAt(new Date().toISOString());
-      saveAnalysis(activity.id, result);
+      // 3. Update State & Storage
+      if (result && result.trim().length > 0) {
+        setAnalysis(result);
+        const now = new Date().toISOString();
+        setAnalyzedAt(now);
+        saveAnalysis(activity.id, result);
+      } else {
+        throw new Error("Hasil analisis kosong dari AI.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menganalisis aktivitas");
+      // If re-analyze failed, try to restore old analysis if exists? 
+      // Nah, let user try again.
     } finally {
       setIsLoading(false);
     }
@@ -66,161 +77,185 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
     setAnalyzedAt(null);
   };
 
-  const handleExport = () => {
+  const handleDownload = () => {
     if (!analysis) return;
-    
-    const exportContent = `# Analisis AI - ${activity.name}
-Tanggal Aktivitas: ${new Date(activity.start_date_local).toLocaleString("id-ID")}
-Dianalisis pada: ${analyzedAt ? new Date(analyzedAt).toLocaleString("id-ID") : "-"}
-
----
-
-${analysis}
-`;
-    
-    const blob = new Blob([exportContent], { type: "text/markdown" });
+    const blob = new Blob([analysis], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
-    const safeName = activity.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-    const filename = `analisis_${safeName}_${activity.id}.md`;
-    
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `analysis_${activity.name.replace(/\s+/g, "_")}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  if (!userProfile) {
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <div className="flex items-center gap-3 text-orange-500 bg-orange-500/10 p-4 rounded-lg border border-orange-500/20">
+            <AlertCircle className="h-5 w-5" />
+            <p className="text-sm">Lengkapi profil fisiologis di Settings untuk menggunakan AI Analysis.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Format Time: 20:52:35
+  const formattedTime = analyzedAt 
+    ? new Date(analyzedAt).toLocaleTimeString("id-ID", { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit', 
+        hour12: false 
+      }).replace(/\./g, ":") // Ensure colons if locale uses dots
+    : "";
+    
+  const formattedDate = analyzedAt
+    ? new Date(analyzedAt).toLocaleDateString("id-ID", {
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric'
+    })
+    : "";
 
   return (
-    <Card className="glass">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-          <Brain className="h-5 w-5 text-primary" />
-          AI Physiological Analysis
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!analysis && !isLoading && !error && (
-          <div className="text-center py-6 space-y-4">
-            <div className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10">
-              <Sparkles className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-base mb-1">Dapatkan Insight AI</h3>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                Analisis latihan dengan AI untuk insight fisiologis, zona jantung, dan rekomendasi personal.
-              </p>
-            </div>
-            <Button
-              onClick={handleAnalyze}
-              className="gradient-primary text-white"
-              disabled={!profile}
-            >
-              <Brain className="h-4 w-4 mr-2" />
-              Analisis Aktivitas
-            </Button>
-            {!profile && (
-              <p className="text-sm text-yellow-400">
-                Lengkapi profil di Settings untuk mengaktifkan analisis.
-              </p>
+    <>
+      <Card className="h-full flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div className="space-y-1">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI Performance Coach
+            </CardTitle>
+            {analyzedAt && analysis && (
+               <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                 <Clock className="h-3 w-3" />
+                 <span>Dianalisis: {formattedDate}, {formattedTime}</span>
+               </div>
             )}
           </div>
-        )}
-
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-8 gap-3">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-muted-foreground text-sm">Menganalisis aktivitas...</p>
+          <div className="flex gap-2">
+              {analysis && (
+                <>
+                  <Button variant="outline" size="icon" onClick={handleDownload} title="Export Analisis AI">
+                      <Download className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => setShowReAnalyzeModal(true)} title="Analisis Ulang">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => setShowDeleteModal(true)} className="text-red-400 hover:text-red-500" title="Hapus">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
           </div>
-        )}
-
-        {error && (
-          <div className="flex flex-col items-center justify-center py-6 gap-3">
-            <div className="p-3 rounded-full bg-red-500/10">
-              <AlertCircle className="h-6 w-6 text-red-400" />
-            </div>
-            <p className="text-red-400 text-center text-sm">{error}</p>
-            <Button variant="outline" size="sm" onClick={handleAnalyze}>
-              Coba Lagi
-            </Button>
-          </div>
-        )}
-
-        {analysis && (
-          <div className="space-y-3">
-            {analyzedAt && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                Dianalisis pada {formatDate(analyzedAt)}
+        </CardHeader>
+        <CardContent className="flex-1">
+          {!analysis && !isLoading && !error && (
+            <div className="flex flex-col items-center justify-center py-8 gap-4 text-center">
+              <div className="p-4 rounded-full bg-primary/10">
+                <Brain className="h-12 w-12 text-primary" />
               </div>
-            )}
-            <div className="prose prose-invert prose-sm max-w-none">
+              <div className="space-y-2 max-w-sm">
+                <h3 className="font-semibold text-lg">Siap Menganalisis</h3>
+                <p className="text-sm text-muted-foreground text-pretty">
+                  AI akan menganalisis detak jantung, kecepatan, dan data stream lainnya untuk memberikan insight performa.
+                </p>
+              </div>
+              <Button onClick={() => handleAnalyze(false)} className="gradient-primary text-white shadow-lg shadow-blue-500/20">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Mulai Analisis
+              </Button>
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-12 gap-4 animate-in fade-in duration-500">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="text-center space-y-1">
+                 <p className="font-medium">Menganalisis Aktivitas...</p>
+                 <p className="text-muted-foreground text-xs">AI sedang mempelajari data latihan Anda</p>
+              </div>
+            </div>
+          )}
+
+          {error && !isLoading && (
+            <div className="flex flex-col items-center justify-center py-6 gap-3">
+              <div className="p-3 rounded-full bg-red-500/10">
+                <AlertCircle className="h-6 w-6 text-red-400" />
+              </div>
+              <p className="text-red-400 text-center text-sm px-4">{error}</p>
+              <Button variant="outline" size="sm" onClick={() => handleAnalyze(true)}>
+                Coba Lagi
+              </Button>
+            </div>
+          )}
+
+          {analysis && !isLoading && (
+            <div className="prose prose-sm dark:prose-invert max-w-none animate-in fade-in slide-in-from-bottom-2 duration-500">
               <ReactMarkdown
-                components={{
-                  h2: ({ children }) => (
-                    <h2 className="text-sm sm:text-base font-semibold text-foreground mt-4 mb-2 first:mt-0 pb-1 border-b border-border">
-                      {children}
-                    </h2>
-                  ),
-                  h3: ({ children }) => (
-                    <h3 className="text-sm font-medium text-foreground mt-3 mb-1">
-                      {children}
-                    </h3>
-                  ),
-                  p: ({ children }) => (
-                    <p className="text-muted-foreground mb-2 leading-relaxed text-xs sm:text-sm">
-                      {children}
-                    </p>
-                  ),
-                  ul: ({ children }) => (
-                    <ul className="list-disc list-inside space-y-0.5 text-muted-foreground mb-2 text-xs sm:text-sm">
-                      {children}
-                    </ul>
-                  ),
-                  ol: ({ children }) => (
-                    <ol className="list-decimal list-inside space-y-0.5 text-muted-foreground mb-2 text-xs sm:text-sm">
-                      {children}
-                    </ol>
-                  ),
-                  li: ({ children }) => (
-                    <li className="text-muted-foreground text-xs sm:text-sm">{children}</li>
-                  ),
-                  strong: ({ children }) => (
-                    <strong className="text-foreground font-semibold">{children}</strong>
-                  ),
-                }}
+                  components={{
+                    h2: ({ children }) => (
+                      <h2 className="text-base sm:text-lg font-bold text-foreground mt-6 mb-3 first:mt-0 pb-2 border-b border-border flex items-center gap-2">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-sm sm:text-base font-semibold text-foreground mt-4 mb-2">
+                        {children}
+                      </h3>
+                    ),
+                    p: ({ children }) => (
+                      <p className="text-muted-foreground mb-3 leading-relaxed text-sm text-justify">
+                        {children}
+                      </p>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="list-disc list-inside space-y-1 text-muted-foreground mb-3 text-sm ml-2">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal list-inside space-y-1 text-muted-foreground mb-3 text-sm ml-2">
+                        {children}
+                      </ol>
+                    ),
+                    li: ({ children }) => (
+                      <li className="text-muted-foreground text-justify pl-1">{children}</li>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="text-foreground font-semibold bg-primary/10 px-1 rounded">{children}</strong>
+                    ),
+                  }}
               >
                 {analysis}
               </ReactMarkdown>
             </div>
-            <div className="pt-3 border-t border-border flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={handleAnalyze}>
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Analisis Ulang
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="h-3 w-3 mr-1" />
-                Export Analisis AI
-              </Button>
-              <Button variant="destructive" size="sm" onClick={handleDelete}>
-                <Trash2 className="h-3 w-3 mr-1" />
-                Hapus
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+
+      <ConfirmationModal
+        isOpen={showReAnalyzeModal}
+        onClose={() => setShowReAnalyzeModal(false)}
+        onConfirm={() => handleAnalyze(true)}
+        title="Analisis Ulang?"
+        description="Analisis ulang akan menggunakan kuota AI dan menimpa hasil analisis sebelumnya. Apakah Anda yakin?"
+        confirmLabel="Ya, Analisis Ulang"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Hapus Analisis"
+        description="Apakah Anda yakin ingin menghapus hasil analisis ini secara permanen?"
+        confirmLabel="Hapus"
+        isDestructive={true}
+      />
+    </>
   );
 }

@@ -10,7 +10,7 @@ import {
 } from "@/utils/storage";
 
 interface UserState {
-  profile: UserProfile | null;
+  userProfile: UserProfile; // Changed from nullable to always having defaults
   tokens: StravaTokens | null;
   isConnected: boolean;
   isLoading: boolean;
@@ -19,21 +19,29 @@ interface UserState {
   setProfile: (profile: UserProfile) => void;
   setTokens: (tokens: StravaTokens) => void;
   refreshTokens: () => Promise<boolean>;
-  disconnect: () => void;
+  disconnectStrava: () => void;
+  connectStrava: () => void;
   getValidAccessToken: () => Promise<string | null>;
 }
 
+const DEFAULT_PROFILE: UserProfile = {
+  age: 25,
+  weight: 70,
+  height: 170,
+  restingHeartRate: 60,
+};
+
 export const useUserStore = create<UserState>((set, get) => ({
-  profile: null,
+  userProfile: DEFAULT_PROFILE,
   tokens: null,
   isConnected: false,
   isLoading: true,
 
   initializeFromStorage: () => {
-    const profile = getUserProfile();
+    const storedProfile = getUserProfile();
     const tokens = getStravaTokens();
     set({
-      profile,
+      userProfile: storedProfile || DEFAULT_PROFILE,
       tokens,
       isConnected: !!tokens,
       isLoading: false,
@@ -42,7 +50,7 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   setProfile: (profile: UserProfile) => {
     saveUserProfile(profile);
-    set({ profile });
+    set({ userProfile: profile });
   },
 
   setTokens: (tokens: StravaTokens) => {
@@ -79,9 +87,13 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
-  disconnect: () => {
+  disconnectStrava: () => {
     clearStravaTokens();
     set({ tokens: null, isConnected: false });
+  },
+
+  connectStrava: () => {
+    window.location.href = "/api/strava/auth";
   },
 
   getValidAccessToken: async () => {

@@ -1,4 +1,4 @@
-import { AnalysisRequest, ChartDataPoint, UserProfile, StravaActivity } from "@/types";
+import { AnalysisRequest, APIAnalysisPayload, ChartDataPoint, UserProfile, StravaActivity } from "@/types";
 
 const SYSTEM_PROMPT = `Anda adalah seorang "Performance Coach" berpengalaman yang suportif, analitis, dan edukatif.
 Tugas Anda: Menganalisis data latihan (Sepeda, Jalan/Trekking, Lari, Hike, dll) secara mendalam, objektif, dan memberikan konteks "Sebab-Akibat".
@@ -24,9 +24,9 @@ STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 - **Pacing & Stamina (Decoupling)**:
   - Data: Speed Drop [Angka]%, HR Drift [Angka]%.
   - Diagnosis: [Sebutkan apa yang terjadi. Misal: "Bonking", "Pacing Jempolan", atau "Kelelahan Otot"].
-  - Penjelasan Sebab-Akibat: [Jelaskan alurnya. Cth: "Karena Anda menekan terlalu keras di tanjakan awal (Sebab), detak jantung drift naik di akhir sesi (Akibat)."].
+  - Penjelasan Sebab-Akibat: [Jelaskan alurnya. Cth: "(SEBAB) Karena Anda menekan terlalu keras di tanjakan awal, (AKIBAT) detak jantung drift naik di akhir sesi."].
 - **Efisiensi Gerak**:
-  - Cadence ([Angka] rpm): [Analisis putaran kaki. Jika rendah (<60rpm) dan beban berat -> boros otot. Jika tinggi -> boros napas tapi hemat otot].
+  - Cadence ([Angka] rpm): [Analisis putaran kaki. Jika rendah (<60rpm) dan beban berat -> boros otot. Jika tinggi -> boros napas tapi hemat otot. Hanya berlaku jika bersepeda dan datanya tersedia].
 
 ## PROTOKOL NUTRISI & RECOVERY (Menu Lokal)
 - Karbohidrat: [Angka] gram.
@@ -109,7 +109,23 @@ export function buildAnalysisPrompt(
   const gearName = activity.gear ? (activity.gear.nickname || activity.gear.name) : "Tidak ada gear khusus";
   const wKg = avgWatts > 0 ? (avgWatts / userProfile.weight).toFixed(2) : "-";
 
+  // 5. Terminology Helper
+  const getTerms = (type: string) => {
+    switch (type) {
+      case "Run": return { verb: "lari", noun: "pelari", action: "berlari" };
+      case "Ride": return { verb: "bersepeda/gowes", noun: "pesepeda", action: "mengayuh" };
+      case "Walk": return { verb: "jalan kaki", noun: "pejalan kaki", action: "berjalan" };
+      case "Hike": return { verb: "hiking", noun: "pendaki", action: "mendaki" };
+      case "Swim": return { verb: "renang", noun: "perenang", action: "berenang" };
+      default: return { verb: "berolahraga", noun: "atlet", action: "bergerak" };
+    }
+  };
+
+  const terms = getTerms(activity.type);
+
   return `
+${SYSTEM_PROMPT}
+
 PROFIL PENGGUNA:
 - Usia: ${userProfile.age} | Berat: ${userProfile.weight} kg
 - RHR: ${userProfile.restingHeartRate} bpm | Max HR (Est): ${hrMaxTanaka} bpm
@@ -130,19 +146,27 @@ METRIK RATA-RATA:
 DATA DECOUPLING (Paruh Awal vs Akhir):
 ${decouplingText}
 
-CATATAN KHUSUS UNTUK AI:
-1. Jika Speed Drop > 10% dan HR naik/tetap, diagnosa sebagai "Fatigue/Bonking".
-2. Jika HR Drift > 5% dengan speed stabil, diagnosa sebagai "Cardiac Drift (Dehidrasi)".
-3. Pertimbangkan GEAR "${gearName}". Jika ini sepeda MTB, wajar speed lebih rendah dari Road Bike. Jika ini sepatu lari berat, wajar pace lebih lambat.
-4. Sesuaikan ekspektasi dengan jenis aktivitas "${activity.type}".
+CATATAN KHUSUS UNTUK AI (PENTING):
+1. KONTEKS AKTIVITAS: Ini adalah aktivitas **${activity.type}** (${terms.verb}). Gunakan istilah yang relevan (misal: "${terms.action}", "${terms.noun}"). JANGAN gunakan istilah "jalan kaki" jika ini "bersepeda", dan sebaliknya.
+2. ANALISIS SPEED: Kecepatan rata-rata ${(avgSpeed * 3.6).toFixed(1)} km/h harus dinilai berdasarkan standar ${terms.noun}. 
+3. DIAGNOSIS PESIMIS: Jika Speed Drop > 10% dan HR naik/tetap, diagnosa sebagai "Fatigue/Bonking".
+4. DIAGNOSIS DEHIDRASI: Jika HR Drift > 5% dengan speed stabil, diagnosa sebagai "Cardiac Drift".
+5. KONTEKS GEAR: Pertimbangkan "${gearName}". Sesuaikan ekspektasi performance dengan alat yang digunakan.
 `;
 }
 
 export async function analyzeActivity(request: AnalysisRequest): Promise<string> {
+  const prompt = buildAnalysisPrompt(request.activity, request.streamSample, request.userProfile);
+  
+  const payload: APIAnalysisPayload = {
+    prompt,
+    activityId: request.activity.id,
+  };
+
   const response = await fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {

@@ -1,219 +1,222 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useUserStore } from "@/store/userStore";
-import { UserProfile, StravaTokens } from "@/types";
-import { User, Heart, Ruler, Weight, Calendar, Link2, Unlink, CheckCircle, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Loader2, Save, Trash2, CheckCircle, AlertCircle } from "lucide-react";
+import { clearAllData } from "@/utils/storage";
 
 export function UserSettings() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { profile, setProfile, tokens, setTokens, isConnected, disconnect, initializeFromStorage } = useUserStore();
-
-  const [formData, setFormData] = useState<UserProfile>({
-    age: 30,
-    weight: 70,
-    height: 170,
-    restingHeartRate: 60,
+  const { data: session } = useSession();
+  const { setProfile, userProfile, isConnected, connectStrava, disconnectStrava } = useUserStore();
+  
+  const [formData, setFormData] = useState({
+    age: "",
+    weight: "",
+    height: "",
+    restingHeartRate: "",
   });
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  useEffect(() => {
-    initializeFromStorage();
-  }, [initializeFromStorage]);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
+  // Load from local store initially
   useEffect(() => {
-    if (profile) {
-      setFormData(profile);
+    if (userProfile) {
+      setFormData({
+        age: userProfile.age.toString(),
+        weight: userProfile.weight.toString(),
+        height: userProfile.height.toString(),
+        restingHeartRate: userProfile.restingHeartRate.toString(),
+      });
     }
-  }, [profile]);
+  }, [userProfile]);
 
-  useEffect(() => {
-    const accessToken = searchParams.get("access_token");
-    const refreshToken = searchParams.get("refresh_token");
-    const expiresAt = searchParams.get("expires_at");
-    const athleteId = searchParams.get("athlete_id");
-    const success = searchParams.get("success");
-    const error = searchParams.get("error");
+  const handleSave = async () => {
+    setLoading(true);
+    setSuccess(false);
 
-    if (success && accessToken && refreshToken && expiresAt && athleteId) {
-      const newTokens: StravaTokens = {
-        accessToken,
-        refreshToken,
-        expiresAt: parseInt(expiresAt),
-        athleteId: parseInt(athleteId),
-      };
-      setTokens(newTokens);
-      setMessage({ type: "success", text: "Berhasil terhubung ke Strava!" });
-      router.replace("/settings");
-    } else if (error) {
-      setMessage({ type: "error", text: decodeURIComponent(error) });
-      router.replace("/settings");
+    const newProfile = {
+      age: parseInt(formData.age) || 25,
+      weight: parseInt(formData.weight) || 70,
+      height: parseInt(formData.height) || 170,
+      restingHeartRate: parseInt(formData.restingHeartRate) || 60,
+      preferredActivity: userProfile.preferredActivity || "Ride",
+    };
+
+    try {
+      // 1. Save to Cloud DB if logged in
+      if (session) {
+        const res = await fetch("/api/user", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newProfile),
+        });
+        if (!res.ok) throw new Error("Gagal menyimpan ke cloud");
+      }
+
+      // 2. Save to Local Store
+      setProfile(newProfile);
+      
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal menyimpan profil (Error Cloud Sync)");
+    } finally {
+      setLoading(false);
     }
-  }, [searchParams, setTokens, router]);
-
-  const handleInputChange = (field: keyof UserProfile, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: parseFloat(value) || 0 }));
   };
 
-  const handleSaveProfile = () => {
-    setProfile(formData);
-    setMessage({ type: "success", text: "Profil berhasil disimpan!" });
-    setTimeout(() => setMessage(null), 3000);
-  };
-
-  const handleConnectStrava = () => {
-    window.location.href = "/api/strava/auth";
-  };
-
-  const handleDisconnect = () => {
-    disconnect();
-    setMessage({ type: "success", text: "Terputus dari Strava" });
-    setTimeout(() => setMessage(null), 3000);
+  const handleClearData = () => {
+    if (confirm("Hapus semua data cache & login lokal? (Data di Cloud aman)")) {
+      setIsClearing(true);
+      clearAllData();
+      disconnectStrava(); 
+      setTimeout(() => {
+        setIsClearing(false);
+        window.location.reload();
+      }, 1000);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {message && (
-        <div
-          className={`flex items-center gap-2 p-4 rounded-lg ${
-            message.type === "success"
-              ? "bg-green-500/10 border border-green-500/20 text-green-400"
-              : "bg-red-500/10 border border-red-500/20 text-red-400"
-          }`}
-        >
-          {message.type === "success" ? (
-            <CheckCircle className="h-5 w-5 flex-shrink-0" />
-          ) : (
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          )}
-          <span className="text-sm">{message.text}</span>
-        </div>
-      )}
+    <div className="space-y-6 max-w-2xl mx-auto">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Pengaturan</h1>
+        <p className="text-muted-foreground">
+          Kelola profil fisiologis dan akun Anda.
+        </p>
+      </div>
 
-      <Card className="glass">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            Profil Fisiologis
-          </CardTitle>
+          <CardTitle>Akun Cloud</CardTitle>
           <CardDescription>
-            Data ini digunakan untuk menghitung zona detak jantung dan analisis AI yang lebih akurat.
+             Status sinkronisasi cloud database.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {session ? (
+            <div className="flex items-center justify-between p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <div className="flex items-center gap-3">
+                {session.user?.image && (
+                    <img src={session.user.image} alt="Avatar" className="w-8 h-8 rounded-full" />
+                )}
+                <div>
+                    <p className="font-medium text-blue-500">Terhubung sebagai {session.user?.name}</p>
+                    <p className="text-xs text-muted-foreground">Profil Anda disinkronkan ke Cloud.</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+                 <p className="text-sm text-yellow-500">Anda belum login. Profil hanya tersimpan di browser ini.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Koneksi Strava (Lokal)</CardTitle>
+          <CardDescription>
+            Izin akses data aktivitas untuk browser ini.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isConnected ? (
+            <div className="flex items-center justify-between p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <span className="font-medium text-green-500">Token Akses Aktif</span>
+              </div>
+              <Button variant="outline" size="sm" onClick={disconnectStrava} className="text-red-500 hover:text-red-600 hover:bg-red-50">
+                Putuskan
+              </Button>
+            </div>
+          ) : (
+             <Button onClick={() => connectStrava()} className="w-full bg-[#fc4c02] text-white">
+                Hubungkan Token Strava
+              </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Profil Fisiologis</CardTitle>
+          <CardDescription>
+             Data ini digunakan AI untuk analisis zona jantung.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="age" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                Usia (tahun)
-              </Label>
+              <Label htmlFor="age">Usia (tahun)</Label>
               <Input
                 id="age"
                 type="number"
                 value={formData.age}
-                onChange={(e) => handleInputChange("age", e.target.value)}
-                min={10}
-                max={100}
+                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="weight" className="flex items-center gap-2">
-                <Weight className="h-4 w-4 text-muted-foreground" />
-                Berat Badan (kg)
-              </Label>
+              <Label htmlFor="weight">Berat Badan (kg)</Label>
               <Input
                 id="weight"
                 type="number"
                 value={formData.weight}
-                onChange={(e) => handleInputChange("weight", e.target.value)}
-                min={20}
-                max={200}
-                step={0.1}
+                onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="height" className="flex items-center gap-2">
-                <Ruler className="h-4 w-4 text-muted-foreground" />
-                Tinggi Badan (cm)
-              </Label>
+              <Label htmlFor="height">Tinggi Badan (cm)</Label>
               <Input
                 id="height"
                 type="number"
                 value={formData.height}
-                onChange={(e) => handleInputChange("height", e.target.value)}
-                min={100}
-                max={250}
+                onChange={(e) => setFormData({ ...formData, height: e.target.value })}
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="rhr" className="flex items-center gap-2">
-                <Heart className="h-4 w-4 text-muted-foreground" />
-                Resting Heart Rate (bpm)
-              </Label>
+              <Label htmlFor="rhr">Resting Heart Rate (bpm)</Label>
               <Input
                 id="rhr"
                 type="number"
                 value={formData.restingHeartRate}
-                onChange={(e) => handleInputChange("restingHeartRate", e.target.value)}
-                min={30}
-                max={100}
+                onChange={(e) => setFormData({ ...formData, restingHeartRate: e.target.value })}
               />
             </div>
           </div>
 
-          <Button onClick={handleSaveProfile} className="w-full sm:w-auto">
-            Simpan Profil
-          </Button>
+          <div className="flex justify-end pt-4">
+            <Button onClick={handleSave} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {success ? "Tersimpan" : "Simpan Profil"}
+              {!loading && !success && <Save className="ml-2 h-4 w-4" />}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="glass">
+      <Card className="border-red-200 dark:border-red-900/30">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-primary" />
-            Koneksi Strava
-          </CardTitle>
+          <CardTitle className="text-red-500">Reset Lokal</CardTitle>
           <CardDescription>
-            Hubungkan akun Strava Anda untuk mengambil data aktivitas.
+            Bersihkan cache browser jika aplikasi bermasalah.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isConnected && tokens ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
-                <div>
-                  <p className="text-green-400 font-medium">Terhubung ke Strava</p>
-                  <p className="text-sm text-muted-foreground">
-                    Athlete ID: {tokens.athleteId}
-                  </p>
-                </div>
-              </div>
-              <Button variant="destructive" onClick={handleDisconnect} className="w-full sm:w-auto">
-                <Unlink className="h-4 w-4 mr-2" />
-                Putuskan Koneksi
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-muted-foreground text-sm">
-                Klik tombol di bawah untuk menghubungkan akun Strava Anda. Anda akan diarahkan ke halaman login Strava.
-              </p>
-              <Button onClick={handleConnectStrava} className="gradient-primary text-white w-full sm:w-auto">
-                <Link2 className="h-4 w-4 mr-2" />
-                Hubungkan ke Strava
-              </Button>
-            </div>
-          )}
+          <Button variant="destructive" onClick={handleClearData} disabled={isClearing}>
+            {isClearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+            Hapus Cache Lokal
+          </Button>
         </CardContent>
       </Card>
     </div>

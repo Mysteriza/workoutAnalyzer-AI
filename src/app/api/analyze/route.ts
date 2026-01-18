@@ -1,55 +1,62 @@
-import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AnalysisRequest } from "@/types";
-import { buildAnalysisPrompt, SYSTEM_PROMPT } from "@/utils/gemini";
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import dbConnect from "@/lib/db";
+import Analysis from "@/models/Analysis";
+import User from "@/models/User";
 
-export async function POST(request: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "Gemini API key not configured" },
-      { status: 500 }
-    );
-  }
-
+export async function POST(req: Request) {
   try {
-    const body: AnalysisRequest = await request.json();
-    const { activity, streamSample, userProfile } = body;
+    // Parse body once
+    const { prompt, activityId } = await req.json();
+    const session = await auth();
 
-    if (!activity || !userProfile) {
-      return NextResponse.json(
-        { error: "Missing required data" },
-        { status: 400 }
-      );
+    if (!prompt) {
+      return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-3-flash-preview",
-      systemInstruction: SYSTEM_PROMPT,
-    });
-
-    const prompt = buildAnalysisPrompt(activity, streamSample || [], userProfile);
-
+    // Generate Content
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
     const result = await model.generateContent(prompt);
-    const response = result.response;
+    const response = await result.response;
     const text = response.text();
 
-    return NextResponse.json({ content: text });
-  } catch (err: unknown) {
-    console.error("Error analyzing activity:", err);
-    
-    let errorMessage = "Failed to analyze activity";
-    if (err instanceof Error) {
-      errorMessage = err.message;
-      console.error("Error details:", err.stack);
+    // Save to DB if user is logged in
+    if (session && session.user && activityId) {
+      await dbConnect();
+      
+      // Get User ID from DB (safest) or Session
+      // @ts-ignore
+      let userId = session.user.id; 
+
+      if (!userId) {
+         // Fallback look up by stravaId if session id is missing for some reason
+         // @ts-ignore
+         const stravaId = session.user.stravaId;
+         if (stravaId) {
+            const user = await User.findOne({ stravaId });
+            if (user) userId = user._id.toString();
+         }
+      }
+
+      if (userId) {
+        // Save or Update Analysis
+        await Analysis.findOneAndUpdate(
+          { userId, activityId },
+          { content: text },
+          { upsert: true, new: true }
+        );
+      }
     }
-    
+
+    return NextResponse.json({ content: text });
+  } catch (error) {
+    console.error("Analysis Error:", error);
     return NextResponse.json(
-      { error: errorMessage },
+      { error: "Failed to generate analysis" },
       { status: 500 }
     );
   }
 }
-

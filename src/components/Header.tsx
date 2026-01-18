@@ -1,50 +1,52 @@
-"use client";
-
 import Link from "next/link";
-import { Activity, Settings, Zap } from "lucide-react";
-import { useUserStore } from "@/store/userStore";
-import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Activity, Settings, User } from "lucide-react";
+import { auth } from "@/lib/auth";
 
-export function Header() {
-  const { isConnected, initializeFromStorage, isLoading } = useUserStore();
-
-  useEffect(() => {
-    initializeFromStorage();
-  }, [initializeFromStorage]);
+export async function Header() {
+  const session = await auth();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
-      <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="p-1.5 sm:p-2 rounded-lg gradient-primary group-hover:shadow-lg group-hover:shadow-primary/25 transition-all duration-300">
-            <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-          </div>
-          <span className="text-base sm:text-xl font-bold gradient-text hidden xs:inline">
-            AI Workout Analyzer
-          </span>
-          <span className="text-base font-bold gradient-text xs:hidden">
-            Workout AI
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+        <Link href="/" className="flex items-center space-x-2">
+          <Activity className="h-6 w-6 text-primary" />
+          <span className="hidden font-bold sm:inline-block">
+            Workout Analyzer AI
           </span>
         </Link>
-
-        <nav className="flex items-center gap-2 sm:gap-4">
-          {!isLoading && isConnected && (
-            <Link
-              href="/"
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            >
-              <Activity className="h-4 w-4" />
-              <span className="hidden sm:inline">Activities</span>
+        <div className="flex items-center space-x-2">
+          <nav className="flex items-center space-x-4">
+            <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
+              <span className="sm:hidden">
+                <Activity className="h-5 w-5" />
+              </span>
+              <span className="hidden sm:inline-block">Dashboard</span>
             </Link>
-          )}
-          <Link
-            href="/settings"
-            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          >
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </Link>
-        </nav>
+            <Link href="/settings" className="text-sm font-medium transition-colors hover:text-primary">
+              <span className="sm:hidden">
+                <Settings className="h-5 w-5" />
+              </span>
+              <span className="hidden sm:inline-block">Settings</span>
+            </Link>
+            {session ? (
+              <div className="flex items-center gap-2">
+                 <span className="text-xs text-muted-foreground hidden sm:inline-block truncate max-w-[100px]">
+                   {session.user?.name}
+                 </span>
+                 {session.user?.image && (
+                   <img src={session.user.image} alt="User" className="h-6 w-6 rounded-full" />
+                 )}
+              </div>
+            ) : (
+               <Link href="/login">
+                 <Button variant="ghost" size="sm">
+                   Login
+                 </Button>
+               </Link>
+            )}
+          </nav>
+        </div>
       </div>
     </header>
   );

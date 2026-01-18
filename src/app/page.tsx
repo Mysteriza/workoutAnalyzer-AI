@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Settings, Zap, Activity, TrendingUp, Brain } from "lucide-react";
 
 export default function HomePage() {
-  const { isConnected, profile, isLoading, initializeFromStorage } = useUserStore();
+  const { isConnected, userProfile, isLoading, initializeFromStorage } = useUserStore();
 
   useEffect(() => {
     initializeFromStorage();
@@ -23,7 +23,7 @@ export default function HomePage() {
     );
   }
 
-  if (!isConnected || !profile) {
+  if (!isConnected || !userProfile) {
     return (
       <div className="container mx-auto px-4 py-8 sm:py-12">
         <div className="max-w-3xl mx-auto text-center space-y-6 sm:space-y-8">
@@ -66,7 +66,7 @@ export default function HomePage() {
 
           <div className="space-y-4 px-4">
             <p className="text-muted-foreground text-sm sm:text-base">
-              {!profile
+              {!userProfile
                 ? "Lengkapi profil Anda terlebih dahulu untuk memulai"
                 : "Hubungkan akun Strava untuk melihat aktivitas Anda"}
             </p>

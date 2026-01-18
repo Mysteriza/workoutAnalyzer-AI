@@ -26,9 +26,11 @@ Aplikasi web personal untuk menarik data olahraga dari Strava, memvisualisasikan
 - **Styling:** Tailwind CSS + Shadcn UI
 - **Charts:** Recharts
 - **Icons:** Lucide React
-- **AI SDK:** @google/generative-ai (Gemini 3 Flash)
+- **AI SDK:** @google/generative-ai (Gemini 3 Flash Preview)
 - **State Management:** Zustand
-- **Storage:** localStorage (client) + .env.local (server)
+- **Database:** MongoDB Atlas + Mongoose
+- **Auth:** NextAuth.js (v5 Beta)
+- **Storage:** localStorage (client cache) + Cloud DB (Analysis & Settings)
 
 ## Installation
 
@@ -47,6 +49,8 @@ STRAVA_CLIENT_ID=your_strava_client_id
 STRAVA_CLIENT_SECRET=your_strava_client_secret
 GEMINI_API_KEY=your_gemini_api_key
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
+MONGODB_URI=your_mongodb_connection_string
+AUTH_SECRET=your_generated_secret_key
 ```
 
 3. Jalankan development server:

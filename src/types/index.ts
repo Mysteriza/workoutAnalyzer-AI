@@ -159,6 +159,11 @@ export interface AnalysisRequest {
   userProfile: UserProfile;
 }
 
+export interface APIAnalysisPayload {
+  prompt: string;
+  activityId: number;
+}
+
 export interface AnalysisResponse {
   content: string;
   error?: string;
