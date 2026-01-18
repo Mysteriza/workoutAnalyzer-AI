@@ -12,6 +12,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "AI Workout Analyzer",
   description: "Analyze your Strava workouts with AI-powered physiological insights",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
