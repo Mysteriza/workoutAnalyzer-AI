@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useUserStore } from "@/store/userStore";
@@ -150,7 +150,7 @@ export function UserSettings() {
               </Button>
             </div>
           ) : (
-             <Button onClick={() => connectStrava()} className="w-full bg-[#fc4c02] text-white">
+             <Button onClick={() => signIn("strava", { callbackUrl: "/settings" })} className="w-full bg-[#fc4c02] text-white hover:bg-[#e34402]">
                 Hubungkan Token Strava
               </Button>
           )}
