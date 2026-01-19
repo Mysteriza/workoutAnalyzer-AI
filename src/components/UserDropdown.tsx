@@ -113,7 +113,7 @@ export function UserDropdown({ userName, userImage }: UserDropdownProps) {
       </div>
 
       {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-md mx-4 rounded-lg border bg-background p-6 shadow-lg">
             <h2 className="text-lg font-bold text-red-500 mb-2">
               ⚠️ Danger Zone: Reset All Data

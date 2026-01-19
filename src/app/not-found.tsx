@@ -10,15 +10,15 @@ export default function NotFound() {
       </div>
       <div className="space-y-2">
         <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">404</h1>
-        <h2 className="text-xl font-semibold">Halaman Tidak Ditemukan</h2>
+        <h2 className="text-xl font-semibold">Page Not Found</h2>
         <p className="text-muted-foreground max-w-[500px]">
-          Maaf, halaman yang Anda cari tidak ada atau telah dipindahkan.
+          Sorry, the page you are looking for does not exist or has been moved.
         </p>
       </div>
       <Link href="/">
         <Button size="lg" className="gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Kembali ke Dashboard
+          Back to Dashboard
         </Button>
       </Link>
     </div>

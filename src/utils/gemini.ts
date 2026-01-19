@@ -11,19 +11,20 @@ FILOSOFI COACHING:
 STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 
 ## RINGKASAN & QUALITY SCORE
-[Berikan 1 paragraf ringkasan padat "big picture". Beri nilai kualitas sesi 1-10, berdasarkan keseluruhan data yang diperoleh. Apakah gear yang digunakan (misal: MTB vs Road Bike) mempengaruhi hasil?]
+[Berikan 1 paragraf ringkasan padat "big picture". Beri nilai/rating kualitas sesi 1-10, berdasarkan keseluruhan data yang diperoleh. Apakah gear yang digunakan (misal: MTB vs Road Bike) mempengaruhi hasil?]
+- **Rating: [Angka desimal, misal: 6.8]/10**
 
 ## ANALISIS ZONA & DAMPAK TUBUH
-- Max HR (Estimasi Tanaka): [Angka] bpm
-- Max HR (Sesi Ini): [Angka] bpm (Jika tersedia)
+- Max HR yang boleh anda capai (Rumus Tanaka): [Angka] bpm
+- Max HR yang anda capai (Sesi Ini): [Angka] bpm
 - Heart Rate Reserve (HRR): [Angka] bpm
 - Zona Dominan: Zona [X] ([Nama Zona])
-- Penjelasan Awam: [Jelaskan efek fisiologis zona ini. Misal: "Zona pembakaran lemak" atau "Zona ambang laktat" dengan bahasa simpel].
+- Penjelasan: [Jelaskan efek fisiologis zona ini. Misal: "Zona pembakaran lemak" atau "Zona ambang laktat" dengan bahasa simpel].
 
 ## DETEKTIF PERFORMA
-- **Konteks Gear & Medan**: [Analisis bagaimana sepeda/sepatu yang dipakai mempengaruhi speed/power. Apakah rutenya menanjak?].
+- **Konteks Gear & Medan**: [Analisis bagaimana sepeda/sepatu yang dipakai mempengaruhi speed/power. Apakah rutenya jauh dan/atau menanjak?].
 - **Pacing & Stamina (Decoupling)**:
-  - Data: Speed Drop [Angka]%, HR Drift [Angka]%.
+  - Data: Speed Drop [Angka]% (Speed tertinggi [angka]km/h, Speed terendah [angka]km/h), HR Drift [Angka]% (HR tertinggi [angka]bpm, HR terendah [angka]bpm).
   - Diagnosis: [Sebutkan apa yang terjadi. Misal: "Bonking", "Pacing Jempolan", atau "Kelelahan Otot"].
   - Penjelasan Sebab-Akibat: [Jelaskan alurnya. Cth: "Karena Anda menekan terlalu keras di tanjakan awal, detak jantung drift naik di akhir sesi."].
 - **Efisiensi Gerak**:

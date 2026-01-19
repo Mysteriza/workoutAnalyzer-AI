@@ -20,14 +20,14 @@ export function ConfirmationModal({
   onConfirm,
   title,
   description,
-  confirmLabel = "Ya, Lanjutkan",
-  cancelLabel = "Batal",
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
   isDestructive = false,
 }: ConfirmationModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div 
         className="bg-background border border-border rounded-lg shadow-lg max-w-md w-full p-6 mx-4 animate-in zoom-in-95 duration-200"
         role="dialog"
