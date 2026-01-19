@@ -276,8 +276,8 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
               </Button>
             </div>
           ) : analysis ? (
-            <article className="prose prose-sm prose-invert max-w-none dark:prose-invert prose-headings:mt-6 prose-headings:mb-3 prose-headings:font-bold prose-p:my-3 prose-p:text-justify prose-ul:my-2 prose-li:my-1 prose-li:text-justify prose-strong:text-foreground">
-              <ReactMarkdown>{analysis}</ReactMarkdown>
+            <article className="prose prose-sm prose-invert max-w-none dark:prose-invert [&_h2]:mt-8 [&_h2]:mb-4 [&_h2]:pt-4 [&_h2]:border-t [&_h2]:border-border [&_h2]:font-bold [&_h3]:mt-6 [&_h3]:mb-3 [&_h3]:font-semibold [&_p]:my-4 [&_p]:text-justify [&_p]:leading-relaxed [&_ul]:my-4 [&_li]:my-2 [&_li]:text-justify [&_table]:my-4 [&_td]:text-justify [&_strong]:font-bold [&_strong]:text-foreground">
+              <ReactMarkdown>{analysis.replace(/([^\n])\n(##)/g, '$1\n\n$2').replace(/([^\n])\n(###)/g, '$1\n\n$2').replace(/([^\n])\n(\*\*)/g, '$1\n\n$2')}</ReactMarkdown>
             </article>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 gap-3">
@@ -349,7 +349,10 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                   <Button variant="outline" onClick={() => setShowReAnalyzeModal(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={() => handleAnalyze(true)}>
+                  <Button onClick={() => {
+                    setShowReAnalyzeModal(false);
+                    handleAnalyze(true);
+                  }}>
                     Re-analyze
                   </Button>
                 </div>
