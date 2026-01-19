@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Activity, LayoutDashboard } from "lucide-react";
+import { Activity } from "lucide-react";
 import { UserDropdown } from "@/components/UserDropdown";
 
 export function Header() {
@@ -19,12 +19,6 @@ export function Header() {
           </span>
         </Link>
         <nav className="flex items-center gap-1">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <LayoutDashboard className="h-4 w-4 sm:hidden" />
-              <span className="hidden sm:inline-block">Dashboard</span>
-            </Button>
-          </Link>
           {session ? (
             <UserDropdown
               userName={session.user?.name}
@@ -42,3 +36,4 @@ export function Header() {
     </header>
   );
 }
+

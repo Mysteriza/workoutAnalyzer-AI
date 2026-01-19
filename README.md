@@ -1,40 +1,36 @@
-# Workout Analyzer AI
+# CardioKernel
 
 **[Bahasa Indonesia](README.md) | [English](README-EN.md)**
 
-Aplikasi web personal untuk menarik data olahraga dari Strava, memvisualisasikan metrik dengan chart interaktif, dan mendapatkan analisis fisiologis mendalam menggunakan Google Gemini AI.
+Aplikasi web untuk menganalisis data latihan dari Strava dengan AI-powered insights menggunakan Google Gemini AI.
 
 ## Features
 
-- **Strava Integration** - OAuth authentication untuk mengambil aktivitas olahraga
-- **Activity Caching** - Aktivitas di-cache di localStorage untuk menghemat API request
-- **Complete Data Display** - Menampilkan semua data dari Strava (HR, Speed, Power, Cadence, Calories, Segments, Splits)
-- **Interactive Charts** - Visualisasi Heart Rate dan Speed menggunakan Recharts
-- **Segment Analysis** - Daftar segment efforts dengan PR ranks dan achievements
+- **Strava Integration** - OAuth authentication untuk mengambil aktivitas
+- **AI Analysis** - Analisis fisiologis dengan Gemini 3 Flash
+- **Rate Limits** - 20 requests/day (reset midnight Pacific ~3 PM WIB)
+- **Interactive Charts** - Visualisasi HR, Speed, Power dengan Recharts
+- **Segment Analysis** - PR ranks dan achievements
 - **Splits Table** - Analisis per-km dengan pace comparison
-- **AI Analysis** - Analisis fisiologis mendalam dengan Google Gemini AI
-- **Gear-Aware Analysis** - AI mempertimbangkan jenis peralatan (sepeda/sepatu) dalam analisis
-- **Persistent Analysis** - Hasil analisis tersimpan di localStorage
-- **Export Data** - Export data aktivitas dan hasil analisis AI
+- **Gear-Aware** - AI mempertimbangkan jenis peralatan
+- **Export Data** - Export aktivitas (JSON) dan analisis (Markdown)
 - **User Profile** - Input data fisiologis (usia, berat, tinggi, RHR)
-- **Mobile Responsive** - UI responsif untuk tampilan desktop dan mobile
-- **Dark Mode** - UI modern dengan dark mode sebagai default
+- **Cloud Sync** - Analisis dan settings tersimpan di MongoDB
+- **Dark Mode** - UI modern dengan dark mode default
 
 ## Tech Stack
 
-- **Framework:** Next.js 15 (App Router) + TypeScript
-- **Styling:** Tailwind CSS + Shadcn UI
-- **Charts:** Recharts
-- **Icons:** Lucide React
-- **AI SDK:** @google/generative-ai (Gemini 3 Flash Preview)
-- **State Management:** Zustand
-- **Database:** MongoDB Atlas + Mongoose
-- **Auth:** NextAuth.js (v5 Beta)
-- **Storage:** localStorage (client cache) + Cloud DB (Analysis & Settings)
+| Category  | Technology               |
+| --------- | ------------------------ |
+| Framework | Next.js 15 + TypeScript  |
+| Styling   | Tailwind CSS + Shadcn UI |
+| Charts    | Recharts                 |
+| AI        | Google Gemini 3 Flash    |
+| State     | Zustand                  |
+| Database  | MongoDB Atlas            |
+| Auth      | NextAuth.js v5           |
 
 ## Installation
-
-1. Clone repository dan install dependencies:
 
 ```bash
 git clone https://github.com/Mysteriza/workoutAnalyzer-AI.git
@@ -42,116 +38,71 @@ cd workoutAnalyzer-AI
 npm install
 ```
 
-2. Konfigurasi environment variables di `.env.local`:
+## Environment Variables
 
-### A. Mendapatkan Strava API
-
-1. Login ke [Strava Settings API](https://www.strava.com/settings/api).
-2. Buat Aplikasi Baru.
-3. **Authorization Callback Domain**: Isi `localhost` (untuk development).
-4. Salin **Client ID** dan **Client Secret**.
-
-### B. Mendapatkan Google Gemini API
-
-1. Buka [Google AI Studio](https://aistudio.google.com/).
-2. Klik **Get API Key** -> **Create API Key**.
-3. Salin key yang dimulai dengan `AIza...`.
-
-### C. Setup MongoDB Atlas
-
-1. Buat akun di [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (Free Tier).
-2. Buat Cluster baru.
-3. **Database Access**: Buat user & password database.
-4. **Network Access**: Whitelist IP `0.0.0.0/0` (Allow from Anywhere).
-5. Klik **Connect** -> **Drivers** -> Copy connection string (ganti `<password>` dengan password user tadi).
-
-### D. Generate Auth Secret
-
-Jalankan perintah ini di terminal untuk membuat secret key aman:
-
-```bash
-openssl rand -base64 32
-```
-
-### Isi File `.env.local`
+Buat file `.env.local`:
 
 ```env
-STRAVA_CLIENT_ID=12345
-STRAVA_CLIENT_SECRET=abc123...
-GEMINI_API_KEY=AIzaSy...
+STRAVA_CLIENT_ID=<dari Strava API Settings>
+STRAVA_CLIENT_SECRET=<dari Strava API Settings>
+GEMINI_API_KEY=<dari Google AI Studio>
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
-MONGODB_URI=mongodb+srv://user:pass@cluster...
-AUTH_SECRET=your_generated_secret
+MONGODB_URI=<dari MongoDB Atlas>
+AUTH_SECRET=<openssl rand -base64 32>
 ```
 
-3. Jalankan development server:
+## API Setup
 
-```bash
-npm run dev
-```
-
-4. Buka `http://localhost:3000` di browser.
-
-**Untuk production:**
-
-```bash
-npm run build
-npm start
-```
-
-## Strava API Setup
+**Strava:**
 
 1. Buka [Strava API Settings](https://www.strava.com/settings/api)
-2. Buat aplikasi baru atau gunakan yang sudah ada
-3. Set **Authorization Callback Domain** ke `localhost`
-4. Copy **Client ID** dan **Client Secret** ke `.env.local`
+2. Buat aplikasi, set callback domain ke `localhost`
+3. Copy Client ID dan Secret
+
+**Gemini:**
+
+1. Buka [Google AI Studio](https://aistudio.google.com/)
+2. Klik Get API Key → Create API Key
+
+**MongoDB:**
+
+1. Buat cluster di [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Whitelist IP `0.0.0.0/0`
+3. Copy connection string
+
+## Running
+
+```bash
+npm run dev     # Development
+npm run build   # Production build
+npm start       # Production server
+```
 
 ## Usage
 
-1. Buka halaman **Settings** (`/settings`)
-2. Isi data fisiologis Anda (usia, berat badan, tinggi, resting heart rate)
-3. Klik **Hubungkan ke Strava** untuk autentikasi
-4. Setelah terkoneksi, kembali ke Dashboard untuk melihat aktivitas
-5. Klik **Refresh** untuk menarik data terbaru dari Strava (Cache tidak update otomatis)
-6. Klik aktivitas untuk melihat detail lengkap termasuk:
-   - Metrik utama (jarak, durasi, elevasi, speed, HR, power)
-   - Chart interaktif Heart Rate & Speed
-   - Segment efforts dengan PR dan achievements
-   - Splits per-km dengan pace analysis
-7. Klik **Analisis Aktivitas** untuk mendapatkan AI analysis
-8. Hasil analisis otomatis tersimpan dan dapat di-export ke markdown
-9. Klik **Export** untuk menyimpan data aktivitas ke JSON
+1. Login dengan Strava OAuth
+2. Isi profil fisiologis di Settings
+3. Pilih aktivitas dari Dashboard
+4. Klik "Generate Analysis" untuk AI insights
+5. Export hasil ke markdown jika perlu
 
-## AI Analysis Features
+## AI Analysis Output
 
-AI Analysis memberikan insight mendalam termasuk:
+- Ringkasan & Quality Score (1-10)
+- Analisis Zona HR (tabel dengan Tanaka formula)
+- Detektif Performa (gear, pacing, stamina)
+- Nutrisi & Recovery (kebutuhan + menu Indonesia)
+- Saran Sesi Berikutnya
 
-- Analisis zona jantung berbasis Karvonen
-- Deteksi cardiac drift dan bonking
-- Evaluasi performa paruh pertama vs kedua
-- Protokol nutrisi dan pemulihan dengan menu Indonesia
-- Pertimbangan gear/peralatan yang digunakan
-- Rencana aksi 24 jam
+## Rate Limits
 
-## Data Caching
+| Metric | Limit                 |
+| ------ | --------------------- |
+| RPM    | 5 requests/minute     |
+| TPM    | 250,000 tokens/minute |
+| RPD    | 20 requests/day       |
 
-- Aktivitas di-cache di localStorage
-- Cache hanya diperbarui saat user menekan tombol Refresh
-- Analisis AI tersimpan per-aktivitas
-
-## Data yang Ditampilkan
-
-- Jarak, Durasi, Elevasi
-- Average/Max Speed
-- Average/Max Heart Rate
-- Cadence (untuk Run dan Ride)
-- Power/Watts (jika tersedia)
-- Kilojoules/Calories
-- Relative Effort (Suffer Score)
-- Achievements, PRs, Kudos
-- Segment Efforts dengan details
-- Splits per-km dengan pace analysis
-- Gear/Equipment info
+Reset daily pada midnight Pacific Time (~3 PM WIB).
 
 ## Project Structure
 
@@ -159,48 +110,26 @@ AI Analysis memberikan insight mendalam termasuk:
 src/
 ├── app/
 │   ├── api/
-│   │   ├── strava/
-│   │   │   ├── auth/route.ts
-│   │   │   ├── callback/route.ts
-│   │   │   ├── activities/route.ts
-│   │   │   ├── refresh/route.ts
-│   │   │   └── streams/[id]/route.ts
-│   │   └── analyze/route.ts
-│   ├── activity/[id]/page.tsx
-│   ├── settings/page.tsx
-│   ├── layout.tsx
-│   ├── page.tsx
-│   └── globals.css
+│   │   ├── strava/       # Strava OAuth & data
+│   │   ├── analyze/      # AI analysis endpoint
+│   │   ├── model/        # Model info endpoint
+│   │   └── usage/        # Usage tracking
+│   ├── activity/[id]/    # Activity detail page
+│   └── settings/         # User settings
 ├── components/
-│   ├── ui/
-│   ├── ActivityCard.tsx
-│   ├── ActivityChart.tsx
-│   ├── ActivityList.tsx
-│   ├── AIAnalysis.tsx
-│   ├── ExportDataButton.tsx
-│   ├── Header.tsx
-│   ├── SegmentList.tsx
-│   ├── SplitsTable.tsx
-│   └── UserSettings.tsx
+│   ├── ui/               # Shadcn components
+│   ├── AIAnalysis.tsx    # AI coach component
+│   └── Header.tsx        # Navigation
 ├── store/
-│   ├── activityStore.ts
-│   └── userStore.ts
-├── types/
-│   └── index.ts
+│   ├── userStore.ts      # User profile state
+│   └── usageStore.ts     # API usage tracking
 └── utils/
-│   ├── gemini.ts
-│   ├── storage.ts
-│   └── strava.ts
+    ├── gemini.ts         # AI prompt builder
+    └── storage.ts        # LocalStorage utils
 ```
 
-## Dependencies
+## Author
 
-- `next` - React framework
-- `react`, `react-dom` - React core
-- `@google/generative-ai` - Gemini AI SDK
-- `recharts` - Chart library
-- `lucide-react` - Icon library
-- `zustand` - State management
-- `react-markdown` - Markdown renderer
-- `@radix-ui/react-label`, `@radix-ui/react-slot`, `@radix-ui/react-tabs`, `@radix-ui/react-select` - Shadcn UI primitives
-- `class-variance-authority`, `clsx`, `tailwind-merge` - Styling utilities
+**Mysteriza** - mysteriza@proton.me
+
+Built with Antigravity IDE.

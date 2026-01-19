@@ -27,6 +27,20 @@ interface AIAnalysisProps {
   streamData: ChartDataPoint[];
 }
 
+function getTimeUntilPacificMidnight(): { hours: number; minutes: number } {
+  const now = new Date();
+  const pacificTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+  const midnight = new Date(pacificTime);
+  midnight.setDate(midnight.getDate() + 1);
+  midnight.setHours(0, 0, 0, 0);
+  
+  const diff = midnight.getTime() - pacificTime.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  return { hours, minutes };
+}
+
 export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   const { userProfile } = useUserStore();
   const { getUsage, incrementUsage, loadFromCloud } = useUsageStore();
@@ -77,7 +91,6 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
 
     setIsLoading(true);
     setError(null);
-    if (isReAnalyze) setAnalysis(null);
 
     try {
       const sampleSize = Math.min(streamData.length, 200);
@@ -140,6 +153,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   };
 
   const isQuotaExhausted = getRemainingQuota() <= 0;
+  const resetTime = getTimeUntilPacificMidnight();
 
   if (!userProfile) {
     return (
@@ -257,12 +271,12 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                 <AlertCircle className="h-6 w-6 text-red-400" />
               </div>
               <p className="text-red-400 text-center text-sm px-4">{error}</p>
-              <Button size="sm" onClick={() => handleAnalyze(analysis ? true : false)} disabled={cooldownSeconds > 0}>
-                {cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : "Retry"}
+              <Button size="sm" onClick={() => handleAnalyze(analysis ? true : false)} disabled={cooldownSeconds > 0 || isQuotaExhausted}>
+                {cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : isQuotaExhausted ? "Quota Exhausted" : "Retry"}
               </Button>
             </div>
           ) : analysis ? (
-            <article className="prose prose-sm prose-invert max-w-none dark:prose-invert prose-headings:mt-6 prose-headings:mb-3 prose-headings:font-bold prose-p:my-3 prose-ul:my-2 prose-li:my-1 prose-strong:text-foreground">
+            <article className="prose prose-sm prose-invert max-w-none dark:prose-invert prose-headings:mt-6 prose-headings:mb-3 prose-headings:font-bold prose-p:my-3 prose-p:text-justify prose-ul:my-2 prose-li:my-1 prose-li:text-justify prose-strong:text-foreground">
               <ReactMarkdown>{analysis}</ReactMarkdown>
             </article>
           ) : (
@@ -275,7 +289,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                   <p className="text-sm text-red-500 font-medium">Daily Quota Exhausted</p>
                   <p className="text-[10px] text-muted-foreground text-center px-4">
                     You have used all {modelInfo?.limits.rpd} requests for today. 
-                    Quota resets at midnight Pacific Time (~3 PM WIB).
+                    Resets in {resetTime.hours}h {resetTime.minutes}m (midnight Pacific).
                   </p>
                 </>
               ) : (
@@ -297,14 +311,53 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
         </CardContent>
       </Card>
 
-      <ConfirmationModal
-        isOpen={showReAnalyzeModal}
-        onClose={() => setShowReAnalyzeModal(false)}
-        onConfirm={() => handleAnalyze(true)}
-        title="Re-analyze with AI?"
-        description={`This will regenerate the analysis using ${modelInfo?.name || "AI"}. The previous analysis will be replaced.`}
-        confirmLabel="Re-analyze"
-      />
+      {showReAnalyzeModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md mx-4 rounded-lg border bg-white dark:bg-zinc-900 p-6 shadow-lg">
+            {isQuotaExhausted ? (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-full bg-red-500/10">
+                    <AlertCircle className="h-6 w-6 text-red-500" />
+                  </div>
+                  <h2 className="text-lg font-bold text-red-500">Daily Quota Exhausted</h2>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  You have used all {modelInfo?.limits.rpd} AI analysis requests for today. 
+                  The quota will reset at midnight Pacific Time.
+                </p>
+                <div className="p-3 bg-muted rounded-lg mb-4 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Time until reset</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {resetTime.hours}h {resetTime.minutes}m
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">~3 PM WIB</p>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={() => setShowReAnalyzeModal(false)}>
+                    OK
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-bold mb-2">Re-analyze with AI?</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  This will regenerate the analysis using {modelInfo?.name || "AI"}. The previous analysis will be replaced.
+                </p>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setShowReAnalyzeModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => handleAnalyze(true)}>
+                    Re-analyze
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <ConfirmationModal
         isOpen={showDeleteModal}
