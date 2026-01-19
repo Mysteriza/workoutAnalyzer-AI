@@ -1,13 +1,26 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUserStore } from "@/store/userStore";
+import { useUsageStore } from "@/store/usageStore";
 import { StravaActivity, ChartDataPoint } from "@/types";
 import { analyzeActivity } from "@/utils/gemini";
 import { getSavedAnalysis, saveAnalysis, deleteAnalysis } from "@/utils/storage";
-import { Brain, Loader2, AlertCircle, Sparkles, Trash2, RefreshCw, Clock, Download } from "lucide-react";
+import { Brain, Loader2, AlertCircle, Sparkles, Trash2, RefreshCw, Clock, Download, Zap } from "lucide-react";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
+
+interface ModelInfo {
+  id: string;
+  name: string;
+  limits: {
+    rpm: number;
+    tpm: number;
+    rpd: number;
+  };
+}
 
 interface AIAnalysisProps {
   activity: StravaActivity;
@@ -16,6 +29,7 @@ interface AIAnalysisProps {
 
 export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   const { userProfile } = useUserStore();
+  const { getUsage, incrementUsage, loadFromCloud } = useUsageStore();
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [analyzedAt, setAnalyzedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,6 +37,15 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [showReAnalyzeModal, setShowReAnalyzeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
+
+  useEffect(() => {
+    loadFromCloud();
+    fetch("/api/model")
+      .then(res => res.json())
+      .then(data => setModelInfo(data))
+      .catch(() => {});
+  }, [loadFromCloud]);
 
   useEffect(() => {
     const saved = getSavedAnalysis(activity.id);
@@ -43,6 +66,10 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
       return () => clearInterval(timer);
     }
   }, [cooldownSeconds]);
+
+  const startCooldown = useCallback(() => {
+    setCooldownSeconds(60);
+  }, []);
 
   const handleAnalyze = async (isReAnalyze = false) => {
     if (!userProfile) return;
@@ -69,21 +96,17 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
         const now = new Date().toISOString();
         setAnalyzedAt(now);
         saveAnalysis(activity.id, result);
+        incrementUsage();
+        startCooldown();
       } else {
         throw new Error("AI analysis result is empty.");
       }
     } catch (err: unknown) {
       const error = err as { message?: string; retryAfter?: number };
-      if (error.message && error.message.includes("429")) {
-        if (typeof error.retryAfter === 'number') {
-          setCooldownSeconds(error.retryAfter);
-          setError(`Cooldown active. Wait ${error.retryAfter} seconds.`);
-        } else {
-          setError(error.message || "Failed to analyze activity");
-        }
-      } else {
-        setError(error.message || "Failed to analyze activity");
+      if (error.message && error.message.includes("rate limit")) {
+        setCooldownSeconds(60);
       }
+      setError(error.message || "Failed to analyze activity");
     } finally {
       setIsLoading(false);
       setShowReAnalyzeModal(false);
@@ -110,6 +133,14 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
     URL.revokeObjectURL(url);
   };
 
+  const getRemainingQuota = () => {
+    if (!modelInfo) return 0;
+    const used = getUsage();
+    return Math.max(0, modelInfo.limits.rpd - used);
+  };
+
+  const isQuotaExhausted = getRemainingQuota() <= 0;
+
   if (!userProfile) {
     return (
       <Card>
@@ -127,7 +158,6 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
     ? new Date(analyzedAt).toLocaleTimeString("en-US", {
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
         hour12: false
       })
     : "";
@@ -135,32 +165,46 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   const formattedDate = analyzedAt
     ? new Date(analyzedAt).toLocaleDateString("en-US", {
         day: 'numeric',
-        month: 'short',
-        year: 'numeric'
+        month: 'short'
     })
     : "";
 
   return (
     <>
       <Card className="h-full flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <div className="space-y-1">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              AI Performance Coach
-            </CardTitle>
-            {analyzedAt && analysis && (
-               <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                 <Clock className="h-3 w-3" />
-                 <span>Analyzed: {formattedDate}, {formattedTime}</span>
-               </div>
-            )}
-          </div>
-          <div className="flex gap-2">
+        <CardHeader className="pb-2 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="space-y-1">
+              <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                AI Performance Coach
+              </CardTitle>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
+                {modelInfo && (
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted">
+                    <Zap className="h-3 w-3" />
+                    {modelInfo.name}
+                  </span>
+                )}
+                {modelInfo && (
+                  <span className={`px-1.5 py-0.5 rounded ${isQuotaExhausted ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
+                    {getRemainingQuota()}/{modelInfo.limits.rpd} RPD
+                  </span>
+                )}
+                {analyzedAt && analysis && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {formattedDate}, {formattedTime}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-1.5">
               {analysis && (
                 <>
-                  <Button variant="outline" size="icon" onClick={handleDownload} title="Export AI Analysis">
-                      <Download className="h-4 w-4" />
+                  <Button variant="outline" size="icon" onClick={handleDownload} title="Export" className="h-8 w-8">
+                    <Download className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="outline"
@@ -168,107 +212,86 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                     onClick={() => setShowReAnalyzeModal(true)}
                     title="Re-analyze"
                     disabled={cooldownSeconds > 0}
+                    className="h-8 w-8"
                   >
                     {cooldownSeconds > 0 ? (
-                        <span className="text-xs font-bold text-orange-500">{cooldownSeconds}</span>
+                      <span className="text-[10px] font-bold text-orange-500">{cooldownSeconds}</span>
                     ) : (
-                        <RefreshCw className="h-4 w-4" />
+                      <RefreshCw className="h-3.5 w-3.5" />
                     )}
                   </Button>
-                  <Button variant="outline" size="icon" onClick={() => setShowDeleteModal(true)} className="text-red-400 hover:text-red-500" title="Delete">
-                    <Trash2 className="h-4 w-4" />
+                  <Button variant="outline" size="icon" onClick={() => setShowDeleteModal(true)} className="text-red-400 hover:text-red-500 h-8 w-8" title="Delete">
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </>
               )}
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="flex-1">
-          {!analysis && !isLoading && !error && (
-            <div className="flex flex-col items-center justify-center py-8 gap-4 text-center">
-              <div className="p-4 rounded-full bg-primary/10">
-                <Brain className="h-12 w-12 text-primary" />
+        
+        {cooldownSeconds > 0 && (
+          <div className="px-4 pb-2">
+            <div className="flex items-center gap-2 p-2 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+              <div className="flex-1 h-1.5 bg-orange-500/20 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-orange-500 rounded-full transition-all duration-1000"
+                  style={{ width: `${(cooldownSeconds / 60) * 100}%` }}
+                />
               </div>
-              <div className="space-y-2 max-w-sm">
-                <h3 className="font-semibold text-lg">Ready to Analyze</h3>
-                <p className="text-sm text-muted-foreground text-pretty">
-                  AI will analyze heart rate, speed, and other stream data to provide performance insights.
-                </p>
-              </div>
-              <Button onClick={() => handleAnalyze(false)} className="gradient-primary text-white shadow-lg shadow-blue-500/20">
-                <Sparkles className="mr-2 h-4 w-4" />
-                Start Analysis
-              </Button>
+              <span className="text-xs text-orange-500 font-medium min-w-[50px] text-right">
+                {cooldownSeconds}s left
+              </span>
             </div>
-          )}
-
-          {isLoading && (
-            <div className="flex flex-col items-center justify-center py-12 gap-4 animate-in fade-in duration-500">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <div className="text-center space-y-1">
-                 <p className="font-medium">Analyzing Activity...</p>
-                 <p className="text-muted-foreground text-xs">AI is studying your workout data</p>
-              </div>
+          </div>
+        )}
+        
+        <CardContent className="flex-1 overflow-auto">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Analyzing with {modelInfo?.name || "AI"}...</p>
             </div>
-          )}
-
-          {error && !isLoading && (
-            <div className="flex flex-col items-center justify-center py-6 gap-3">
-              <div className="p-3 rounded-full bg-red-500/10">
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <div className="p-2 rounded-full bg-red-500/10">
                 <AlertCircle className="h-6 w-6 text-red-400" />
               </div>
               <p className="text-red-400 text-center text-sm px-4">{error}</p>
-
-              {cooldownSeconds > 0 ? (
-                 <Button variant="outline" size="sm" disabled>
-                    Wait {cooldownSeconds}s
-                 </Button>
-              ) : (
-                 <Button variant="outline" size="sm" onClick={() => handleAnalyze(true)}>
-                    Retry
-                 </Button>
-              )}
+              <Button size="sm" onClick={() => handleAnalyze(analysis ? true : false)} disabled={cooldownSeconds > 0}>
+                {cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : "Retry"}
+              </Button>
             </div>
-          )}
-
-          {analysis && !isLoading && (
-            <div className="prose prose-sm dark:prose-invert max-w-none animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <ReactMarkdown
-                  components={{
-                    h2: ({ children }) => (
-                      <h2 className="text-base sm:text-lg font-bold text-foreground mt-6 mb-3 first:mt-0 pb-2 border-b border-border flex items-center gap-2">
-                        {children}
-                      </h2>
-                    ),
-                    h3: ({ children }) => (
-                      <h3 className="text-sm sm:text-base font-semibold text-foreground mt-4 mb-2">
-                        {children}
-                      </h3>
-                    ),
-                    p: ({ children }) => (
-                      <p className="text-muted-foreground mb-3 leading-relaxed text-sm text-justify">
-                        {children}
-                      </p>
-                    ),
-                    ul: ({ children }) => (
-                      <ul className="list-disc list-inside space-y-1 text-muted-foreground mb-3 text-sm ml-2">
-                        {children}
-                      </ul>
-                    ),
-                    ol: ({ children }) => (
-                      <ol className="list-decimal list-inside space-y-1 text-muted-foreground mb-3 text-sm ml-2">
-                        {children}
-                      </ol>
-                    ),
-                    li: ({ children }) => (
-                      <li className="text-muted-foreground text-justify pl-1">{children}</li>
-                    ),
-                    strong: ({ children }) => (
-                      <strong className="text-foreground font-semibold bg-primary/10 px-1 rounded">{children}</strong>
-                    ),
-                  }}
-              >
-                {analysis}
-              </ReactMarkdown>
+          ) : analysis ? (
+            <article className="prose prose-sm prose-invert max-w-none dark:prose-invert prose-headings:mt-6 prose-headings:mb-3 prose-headings:font-bold prose-p:my-3 prose-ul:my-2 prose-li:my-1 prose-strong:text-foreground">
+              <ReactMarkdown>{analysis}</ReactMarkdown>
+            </article>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <div className={`p-3 rounded-full ${isQuotaExhausted ? 'bg-red-500/10' : 'bg-primary/10'}`}>
+                <Brain className={`h-6 w-6 ${isQuotaExhausted ? 'text-red-500' : 'text-primary'}`} />
+              </div>
+              {isQuotaExhausted ? (
+                <>
+                  <p className="text-sm text-red-500 font-medium">Daily Quota Exhausted</p>
+                  <p className="text-[10px] text-muted-foreground text-center px-4">
+                    You have used all {modelInfo?.limits.rpd} requests for today. 
+                    Quota resets at midnight Pacific Time (~3 PM WIB).
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">Ready to Analyze</p>
+                  {modelInfo && (
+                    <p className="text-[10px] text-muted-foreground">
+                      {modelInfo.name} · {getRemainingQuota()} requests left today
+                    </p>
+                  )}
+                  <Button size="sm" onClick={() => handleAnalyze()} className="gap-2">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Generate Analysis
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </CardContent>
@@ -278,17 +301,17 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
         isOpen={showReAnalyzeModal}
         onClose={() => setShowReAnalyzeModal(false)}
         onConfirm={() => handleAnalyze(true)}
-        title="Re-analyze?"
-        description="Re-analysis will use AI quota and overwrite the previous analysis. Are you sure?"
-        confirmLabel="Yes, Re-analyze"
+        title="Re-analyze with AI?"
+        description={`This will regenerate the analysis using ${modelInfo?.name || "AI"}. The previous analysis will be replaced.`}
+        confirmLabel="Re-analyze"
       />
 
       <ConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDelete}
-        title="Delete Analysis"
-        description="Are you sure you want to permanently delete this analysis?"
+        title="Delete AI Analysis?"
+        description="This will permanently delete the AI analysis for this activity."
         confirmLabel="Delete"
         isDestructive={true}
       />

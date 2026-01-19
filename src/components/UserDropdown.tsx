@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trash2, ChevronDown, User, Settings } from "lucide-react";
+import { LogOut, Trash2, ChevronDown, User, Settings, Info, Mail, Sparkles } from "lucide-react";
 
 interface UserDropdownProps {
   userName?: string | null;
@@ -14,6 +14,7 @@ interface UserDropdownProps {
 export function UserDropdown({ userName, userImage }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [isResetting, setIsResetting] = useState(false);
 
@@ -79,7 +80,7 @@ export function UserDropdown({ userName, userImage }: UserDropdownProps) {
               className="fixed inset-0 z-40"
               onClick={() => setIsOpen(false)}
             />
-            <div className="absolute right-0 top-full mt-1 w-48 rounded-md border bg-popover shadow-lg z-50">
+            <div className="absolute right-0 top-full mt-1 w-48 rounded-md border bg-white dark:bg-zinc-900 shadow-lg z-50">
               <div className="p-1">
                 <a
                   href="/settings"
@@ -88,6 +89,16 @@ export function UserDropdown({ userName, userImage }: UserDropdownProps) {
                   <Settings className="h-4 w-4" />
                   Settings
                 </a>
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    setShowAboutModal(true);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent transition-colors"
+                >
+                  <Info className="h-4 w-4" />
+                  About
+                </button>
                 <button
                   onClick={handleLogout}
                   className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent transition-colors"
@@ -112,9 +123,58 @@ export function UserDropdown({ userName, userImage }: UserDropdownProps) {
         )}
       </div>
 
+      {showAboutModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md mx-4 rounded-lg border bg-white dark:bg-zinc-900 p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-full bg-primary/10">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">CardioKernel</h2>
+                <p className="text-xs text-muted-foreground">AI-Powered Workout Analyzer</p>
+              </div>
+            </div>
+            
+            <p className="text-sm text-muted-foreground mb-4">
+              CardioKernel is an intelligent workout analysis platform that connects 
+              to your Strava account and provides AI-powered insights on your activities. 
+              It analyzes heart rate zones, pacing, nutrition needs, and offers 
+              personalized recommendations for your next session.
+            </p>
+
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2 text-sm">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Author:</span>
+                <span className="font-medium">Mysteriza</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Email:</span>
+                <a href="mailto:mysteriza@proton.me" className="font-medium text-primary hover:underline">
+                  mysteriza@proton.me
+                </a>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Built with:</span>
+                <span className="font-medium">Antigravity IDE</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => setShowAboutModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md mx-4 rounded-lg border bg-background p-6 shadow-lg">
+          <div className="w-full max-w-md mx-4 rounded-lg border bg-white dark:bg-zinc-900 p-6 shadow-lg">
             <h2 className="text-lg font-bold text-red-500 mb-2">
               ⚠️ Danger Zone: Reset All Data
             </h2>

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Analysis from "@/models/Analysis";
 import User from "@/models/User";
+import { MODEL_ID } from "@/app/api/model/route";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -22,7 +23,6 @@ export async function POST(req: Request) {
     
     await dbConnect();
 
-    // Get User ID
     // @ts-ignore
     let userId = session.user.id;
     if (!userId) {
@@ -38,16 +38,13 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 1. Check Caching
     const existingAnalysis = await Analysis.findOne({ userId, activityId });
 
     if (existingAnalysis) {
-        // COOLDOWN CHECK
-        // If forceRefresh is requested, check if enough time passed (60s)
         if (forceRefresh) {
             const lastUpdate = new Date(existingAnalysis.updatedAt).getTime();
             const now = Date.now();
-            const diff = (now - lastUpdate) / 1000; // seconds
+            const diff = (now - lastUpdate) / 1000;
 
             if (diff < 60) {
                 return NextResponse.json({ 
@@ -57,7 +54,6 @@ export async function POST(req: Request) {
                 }, { status: 429 });
             }
         } else {
-            // Return cached content if forceRefresh is false
             console.log("Serving Analysis from Cache");
             return NextResponse.json({ 
                 content: existingAnalysis.content,
@@ -67,13 +63,12 @@ export async function POST(req: Request) {
         }
     }
 
-    // Generate Content
-    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+    console.log("Generating analysis with model:", MODEL_ID);
+    const model = genAI.getGenerativeModel({ model: MODEL_ID });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
-    // Save/Update DB
     await Analysis.findOneAndUpdate(
         { userId, activityId },
         { content: text },
@@ -86,10 +81,36 @@ export async function POST(req: Request) {
         updatedAt: new Date()
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Analysis Error:", error);
+    
+    let errorMessage = "Failed to generate analysis";
+    let errorCode = "UNKNOWN_ERROR";
+    
+    if (error instanceof Error) {
+      const message = error.message;
+      
+      if (message.includes("429") || message.includes("Too Many Requests") || message.includes("quota")) {
+        errorCode = "RATE_LIMIT";
+        const retryMatch = message.match(/retry in (\d+)/i);
+        const retrySeconds = retryMatch ? retryMatch[1] : "60";
+        errorMessage = `API rate limit exceeded. Please wait ${retrySeconds} seconds before trying again.`;
+      } else if (message.includes("404") || message.includes("not found")) {
+        errorCode = "MODEL_NOT_FOUND";
+        errorMessage = "AI model not available. Please contact support.";
+      } else if (message.includes("401") || message.includes("403") || message.includes("API key")) {
+        errorCode = "AUTH_ERROR";
+        errorMessage = "API authentication failed. Please check configuration.";
+      } else if (message.includes("500") || message.includes("503")) {
+        errorCode = "SERVER_ERROR";
+        errorMessage = "Gemini API is temporarily unavailable. Please try again later.";
+      } else {
+        errorMessage = message.length > 200 ? message.substring(0, 200) + "..." : message;
+      }
+    }
+    
     return NextResponse.json(
-      { error: "Failed to generate analysis" },
+      { error: errorMessage, code: errorCode },
       { status: 500 }
     );
   }

@@ -14,6 +14,8 @@ export interface IUser extends Document {
     height?: number;
     restingHeartRate?: number;
   };
+  usageCount?: number;
+  usageLastReset?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +36,8 @@ const UserSchema: Schema<IUser> = new Schema(
       restingHeartRate: { type: Number },
       preferredActivity: { type: String },
     },
+    usageCount: { type: Number, default: 0 },
+    usageLastReset: { type: String },
   },
   { timestamps: true }
 );

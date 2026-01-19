@@ -24,19 +24,23 @@ STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 ## DETEKTIF PERFORMA
 - **Konteks Gear & Medan**: [Analisis bagaimana sepeda/sepatu yang dipakai mempengaruhi speed/power. Apakah rutenya jauh dan/atau menanjak?].
 - **Pacing & Stamina (Decoupling)**:
-  - Data: Speed Drop [Angka]% (Speed tertinggi [angka]km/h, Speed terendah [angka]km/h), HR Drift [Angka]% (HR tertinggi [angka]bpm, HR terendah [angka]bpm).
+  - Data: Speed Drop [Angka]%, HR Drift [Angka]%.
   - Diagnosis: [Sebutkan apa yang terjadi. Misal: "Bonking", "Pacing Jempolan", atau "Kelelahan Otot"].
   - Penjelasan Sebab-Akibat: [Jelaskan alurnya. Cth: "Karena Anda menekan terlalu keras di tanjakan awal, detak jantung drift naik di akhir sesi."].
 - **Efisiensi Gerak**:
   - Cadence ([Angka] rpm): [Analisis putaran kaki. Jika rendah (<60rpm) dan beban berat -> boros otot. Jika tinggi -> boros napas tapi hemat otot. Hanya berlaku untuk bersepeda dan datanya tersedia].
 
-## PROTOKOL NUTRISI & RECOVERY (Menu Lokal)
-- Karbohidrat: [Angka] gram.
-- Protein: [Angka] gram.
-- Hidrasi: [Angka] ml.
+## PROTOKOL NUTRISI & RECOVERY (Saran Menu Lokal)
+WAJIB HITUNG berdasarkan: Kalori terbakar, durasi, berat badan user, dan intensitas aktivitas. Tidak perlu menampilkan hasil hitungnya di output.
+Rumus dasar: Karbohidrat = kalori/4 * 0.6, Protein = berat_badan * 0.3, Hidrasi = durasi_menit * 15 + 500.
+- Karbohidrat: [Angka hasil hitung] gram.
+- Protein: [Angka hasil hitung] gram.
+- Hidrasi: [Angka hasil hitung] ml.
 - Menu Rekomendasi (Indonesia):
-  - Opsi 1: [Makanan simpel & enak]
-  - Opsi 2: [Makanan simpel & enak]
+  - Opsi 1: [Makanan simpel, sehat & enak] & [Minuman/Jus enak dan sehat]
+  - Opsi 2: [Makanan simpel, sehat & enak] & [Minuman/Jus enak dan sehat]
+  - Opsi 3: [Makanan simpel, sehat & enak] & [Minuman/Jus enak dan sehat]
+  - Opsi 4: [Makanan simpel, sehat & enak] & [Minuman/Jus enak dan sehat]
 
 ## SARAN UNTUK SESI BERIKUTNYA
 - Pacing Strategy: [Saran konkret].
@@ -44,13 +48,15 @@ STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 - Fokus Latihan: [Area perbaikan].
 
 ATURAN TAMBAHAN:
-1. Bahasa Indonesia yang luwes, enak dibaca, mengalir.
+1. Bahasa Indonesia yang luwes, enak dibaca, mengalir. Jangan ada kalimat pembuka dan penutup.
 2. JANGAN pakai emoji.
 3. JANGAN bulatkan angka. Gunakan data PERSIS seperti yang diberikan untuk akurasi maksimal.
 4. JANGAN gunakan data dari "aktivitas sebelumnya". Fokus hanya pada data yang diberikan di atas.
-5. Jika data (misal Power/Cadence, atau Heart Rate, dll) bernilai "N/A" atau 0, nyatakan bahwa data tidak tersedia (jangan halusinasi).
-6. PENTING: Bedakan "Max HR (Tanaka)" (Teoritis User) vs "Max HR (Sesi Ini)" (Aktual).
-7. Gunakan SEMUA data aktual dari Strava yang tersedia, jangan asumsikan nilai.`;
+5. Untuk data SENSOR (Power, Cadence, Heart Rate): Jika bernilai "N/A" atau 0, nyatakan tidak tersedia.
+6. Untuk NUTRISI: SELALU HITUNG menggunakan rumus di atas. Jangan pernah tulis "data tidak tersedia".
+7. PENTING: Bedakan "Max HR (Tanaka)" (Teoritis User) vs "Max HR (Sesi Ini)" (Aktual).
+8. Gunakan SEMUA data aktual dari Strava yang tersedia, jangan asumsikan nilai.
+9. Pastikan struktur output analisis ditulis sesuai format di atas. Tidak boleh ada perubahan pada format.`;
 
 export function buildAnalysisPrompt(
   activity: StravaActivity,
