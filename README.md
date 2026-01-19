@@ -4,6 +4,11 @@
 
 Aplikasi web untuk menganalisis data latihan dari Strava dengan AI-powered insights menggunakan Google Gemini AI.
 
+## Screenshots
+<img width="1900" height="923" alt="image" src="https://github.com/user-attachments/assets/674150e1-debd-40b7-b477-a4a89a131181" />
+<img width="1920" height="2792" alt="screencapture-workout-analyzer-ai-vercel-app-activity-17076535827-2026-01-19-13_12_09" src="https://github.com/user-attachments/assets/e5609886-93cb-4f88-af45-11413baf7c5e" />
+
+
 ## Features
 
 - **Strava Integration** - OAuth authentication untuk mengambil aktivitas
