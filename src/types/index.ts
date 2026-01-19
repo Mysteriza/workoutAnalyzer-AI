@@ -159,14 +159,12 @@ export interface AnalysisRequest {
   streamSample: ChartDataPoint[];
   userProfile: UserProfile;
   forceRefresh?: boolean;
-  model?: string;
 }
 
 export interface APIAnalysisPayload {
   prompt: string;
   activityId: number;
   forceRefresh?: boolean;
-  model?: string;
 }
 
 export interface AnalysisResponse {

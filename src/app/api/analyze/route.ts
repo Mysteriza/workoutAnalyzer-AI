@@ -54,7 +54,6 @@ export async function POST(req: Request) {
                 }, { status: 429 });
             }
         } else {
-            console.log("Serving Analysis from Cache");
             return NextResponse.json({ 
                 content: existingAnalysis.content,
                 isCached: true,
@@ -63,7 +62,6 @@ export async function POST(req: Request) {
         }
     }
 
-    console.log("Generating analysis with model:", MODEL_ID);
     const model = genAI.getGenerativeModel({ model: MODEL_ID });
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -82,8 +80,6 @@ export async function POST(req: Request) {
     });
 
   } catch (error: unknown) {
-    console.error("Analysis Error:", error);
-    
     let errorMessage = "Failed to generate analysis";
     let errorCode = "UNKNOWN_ERROR";
     

@@ -38,8 +38,7 @@ export async function GET() {
       count: user.usageCount || 0, 
       lastReset: user.usageLastReset || todayPacific 
     });
-  } catch (error) {
-    console.error("Usage GET error:", error);
+  } catch {
     return NextResponse.json({ error: "Failed to get usage" }, { status: 500 });
   }
 }
@@ -74,8 +73,7 @@ export async function POST(req: Request) {
       count: user.usageCount, 
       lastReset: user.usageLastReset 
     });
-  } catch (error) {
-    console.error("Usage POST error:", error);
+  } catch {
     return NextResponse.json({ error: "Failed to update usage" }, { status: 500 });
   }
 }
@@ -111,8 +109,7 @@ export async function PUT(req: Request) {
       count: user.usageCount, 
       lastReset: user.usageLastReset 
     });
-  } catch (error) {
-    console.error("Usage PUT error:", error);
+  } catch {
     return NextResponse.json({ error: "Failed to set usage" }, { status: 500 });
   }
 }

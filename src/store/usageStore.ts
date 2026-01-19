@@ -52,8 +52,7 @@ export const useUsageStore = create<UsageState>()(
             const data = await response.json();
             set({ count: data.count, lastReset: data.lastReset });
           }
-        } catch (error) {
-          console.error("Failed to sync usage to cloud:", error);
+        } catch {
         }
       },
 
@@ -70,8 +69,7 @@ export const useUsageStore = create<UsageState>()(
               set({ count: 0, lastReset: todayPacific, isLoaded: true });
             }
           }
-        } catch (error) {
-          console.error("Failed to load usage from cloud:", error);
+        } catch {
           set({ isLoaded: true });
         }
       },
