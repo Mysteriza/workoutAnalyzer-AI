@@ -43,7 +43,7 @@ function getTimeUntilPacificMidnight(): { hours: number; minutes: number } {
 
 export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   const { userProfile } = useUserStore();
-  const { getUsage, incrementUsage, loadFromCloud } = useUsageStore();
+  const { count, lastReset, incrementUsage, loadFromCloud } = useUsageStore();
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [analyzedAt, setAnalyzedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,11 +62,34 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   }, [loadFromCloud]);
 
   useEffect(() => {
-    const saved = getSavedAnalysis(activity.id);
-    if (saved && saved.content && saved.content.trim().length > 0) {
-      setAnalysis(saved.content);
-      setAnalyzedAt(saved.analyzedAt);
-    }
+    const loadAnalysis = async () => {
+      const saved = getSavedAnalysis(activity.id);
+      if (saved && saved.content && saved.content.trim().length > 0) {
+        setAnalysis(saved.content);
+        setAnalyzedAt(saved.analyzedAt);
+      } else {
+        try {
+          const response = await fetch("/api/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              prompt: "", 
+              activityId: activity.id, 
+              forceRefresh: false 
+            }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.isCached && data.content) {
+              setAnalysis(data.content);
+              setAnalyzedAt(data.updatedAt);
+              saveAnalysis(activity.id, data.content);
+            }
+          }
+        } catch {}
+      }
+    };
+    loadAnalysis();
   }, [activity.id]);
 
   useEffect(() => {
@@ -115,11 +138,18 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
         throw new Error("AI analysis result is empty.");
       }
     } catch (err: unknown) {
-      const error = err as { message?: string; retryAfter?: number };
-      if (error.message && error.message.includes("rate limit")) {
-        setCooldownSeconds(60);
+      const error = err as { message?: string; retryAfter?: number; cachedContent?: string };
+      
+      if (error.cachedContent) {
+        setAnalysis(error.cachedContent);
+        setError(null);
+      } else {
+        setError(error.message || "Failed to analyze activity");
       }
-      setError(error.message || "Failed to analyze activity");
+      
+      if (error.retryAfter) {
+        setCooldownSeconds(error.retryAfter);
+      }
     } finally {
       setIsLoading(false);
       setShowReAnalyzeModal(false);
@@ -148,7 +178,10 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
 
   const getRemainingQuota = () => {
     if (!modelInfo) return 0;
-    const used = getUsage();
+    const now = new Date();
+    const pacificTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+    const todayPacific = pacificTime.toISOString().split("T")[0];
+    const used = todayPacific === lastReset ? count : 0;
     return Math.max(0, modelInfo.limits.rpd - used);
   };
 

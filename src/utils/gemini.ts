@@ -37,10 +37,10 @@ Rumus dasar: Karbohidrat = kalori/4 * 0.6, Protein = berat_badan * 0.3, Hidrasi 
 - Protein: [Angka hasil hitung] gram.
 - Hidrasi: [Angka hasil hitung] ml.
 - Menu Rekomendasi (Indonesia):
-  - Opsi 1: [Makanan simpel, sehat & enak] & [Minuman/Jus enak dan sehat]
-  - Opsi 2: [Makanan simpel, sehat & enak] & [Minuman/Jus enak dan sehat]
-  - Opsi 3: [Makanan simpel, sehat & enak] & [Minuman/Jus enak dan sehat]
-  - Opsi 4: [Makanan simpel, sehat & enak] & [Minuman/Jus enak dan sehat]
+  - Opsi 1: [Makanan simpel, sehat & enak. Sesuai kebutuhan nutrisi] & [Minuman/Jus enak dan sehat. Sesuai kebutuhan nutrisi]
+  - Opsi 2: [Makanan simpel, sehat & enak. Sesuai kebutuhan nutrisi] & [Minuman/Jus enak dan sehat. Sesuai kebutuhan nutrisi]
+  - Opsi 3: [Makanan simpel, sehat & enak. Sesuai kebutuhan nutrisi] & [Minuman/Jus enak dan sehat. Sesuai kebutuhan nutrisi]
+  - Opsi 4: [Makanan simpel, sehat & enak. Sesuai kebutuhan nutrisi] & [Minuman/Jus enak dan sehat. Sesuai kebutuhan nutrisi]
 [SPACING]
 ## SARAN UNTUK SESI BERIKUTNYA
 - **Pacing Strategy**: [Saran konkret].
@@ -184,12 +184,19 @@ export async function analyzeActivity(request: AnalysisRequest): Promise<string>
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to analyze activity");
+  const data = await response.json();
+
+  if (response.status === 429) {
+    const error = new Error(data.error || "Cooldown active") as Error & { retryAfter?: number; cachedContent?: string };
+    error.retryAfter = data.retryAfter;
+    error.cachedContent = data.content;
+    throw error;
   }
 
-  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to analyze activity");
+  }
+
   return data.content;
 }
 
