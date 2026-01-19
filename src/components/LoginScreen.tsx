@@ -4,14 +4,10 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function LoginScreen() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -30,7 +26,7 @@ export function LoginScreen() {
   if (session) {
     return (
       <div className="text-center py-8">
-        <p className="mb-4 text-muted-foreground">Anda sudah terhubung sebagai {session.user?.name}</p>
+        <p className="mb-4 text-muted-foreground">You are connected as {session.user?.name}</p>
         <Button onClick={() => signOut()}>Logout</Button>
       </div>
     );
@@ -39,18 +35,18 @@ export function LoginScreen() {
   return (
     <Card className="max-w-md mx-auto mt-8 glass">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Selamat Datang</CardTitle>
+        <CardTitle className="text-2xl">Welcome</CardTitle>
         <CardDescription>
-          Hubungkan akun Strava Anda untuk memulai analisis performa tingkat lanjut.
+          Connect your Strava account to start advanced performance analysis.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20 text-orange-500 text-sm text-center">
-          Analisis AI mendalam, sync antar perangkat, dan backup otomatis.
+          Deep AI analysis, cross-device sync, and automatic backup.
         </div>
-        
-        <Button 
-          className="w-full bg-[#fc4c02] hover:bg-[#e34402] text-white" 
+
+        <Button
+          className="w-full bg-[#fc4c02] hover:bg-[#e34402] text-white"
           size="lg"
           onClick={handleLogin}
           disabled={loading}

@@ -11,6 +11,7 @@ import { getActivitiesLastFetch } from "@/utils/storage";
 import { StravaActivity } from "@/types";
 
 type SortOption = "date_desc" | "date_asc" | "distance_desc" | "duration_desc";
+type ItemsPerPageOption = 10 | 15 | 20 | 25;
 
 export function ActivityList() {
   const { getValidAccessToken, isConnected } = useUserStore();
@@ -18,10 +19,9 @@ export function ActivityList() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
   
-  // Pagination & Sorting State
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>("date_desc");
-  const itemsPerPage = 15;
+  const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPageOption>(15);
 
   useEffect(() => {
     initializeFromCache();
@@ -40,18 +40,17 @@ export function ActivityList() {
   }, [isConnected, isRefreshing, getValidAccessToken, fetchActivities]);
 
   const formatLastFetch = (date: Date | null) => {
-    if (!date) return "Belum pernah";
-    return date.toLocaleString("id-ID", {
-      day: "numeric",
+    if (!date) return "Never";
+    return date.toLocaleString("en-US", {
       month: "short",
+      day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
   };
 
-  // processedActivities: Sorted & Filtered
   const processedActivities = useMemo(() => {
-    let sorted = [...activities];
+    const sorted = [...activities];
     switch (sortBy) {
       case "date_desc":
         sorted.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
@@ -69,12 +68,12 @@ export function ActivityList() {
     return sorted;
   }, [activities, sortBy]);
 
-  // Pagination Logic
   const totalPages = Math.ceil(processedActivities.length / itemsPerPage);
+  
   const paginatedActivities = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return processedActivities.slice(start, start + itemsPerPage);
-  }, [processedActivities, currentPage]);
+  }, [processedActivities, currentPage, itemsPerPage]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -83,12 +82,16 @@ export function ActivityList() {
     }
   };
 
-  // Grouping Logic (Month Year)
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value) as ItemsPerPageOption);
+    setCurrentPage(1);
+  };
+
   const groupedActivities = useMemo(() => {
     const groups: Record<string, StravaActivity[]> = {};
     paginatedActivities.forEach(activity => {
       const date = new Date(activity.start_date_local);
-      const key = date.toLocaleString("id-ID", { month: "long", year: "numeric" });
+      const key = date.toLocaleString("en-US", { month: "long", year: "numeric" });
       if (!groups[key]) groups[key] = [];
       groups[key].push(activity);
     });
@@ -99,7 +102,7 @@ export function ActivityList() {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Memuat aktivitas...</p>
+        <p className="text-muted-foreground">Loading activities...</p>
       </div>
     );
   }
@@ -112,12 +115,8 @@ export function ActivityList() {
         </div>
         <p className="text-red-400 text-center px-4">{error}</p>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={clearError}>
-            Tutup
-          </Button>
-          <Button onClick={handleRefresh}>
-            Coba Lagi
-          </Button>
+          <Button variant="outline" onClick={clearError}>Close</Button>
+          <Button onClick={handleRefresh}>Retry</Button>
         </div>
       </div>
     );
@@ -129,43 +128,53 @@ export function ActivityList() {
         <div className="p-4 rounded-full bg-muted">
           <Activity className="h-8 w-8 text-muted-foreground" />
         </div>
-        <p className="text-muted-foreground">Tidak ada aktivitas</p>
+        <p className="text-muted-foreground">No activities found</p>
         <p className="text-sm text-muted-foreground text-center px-4">
-          Klik Refresh untuk mengambil aktivitas dari Strava.
+          Click Refresh to fetch activities from Strava.
         </p>
         <Button onClick={handleRefresh} disabled={isRefreshing}>
           <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-          Refresh dari Strava
+          Refresh from Strava
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-muted/30 p-3 rounded-lg">
-        <div className="space-y-1">
-           <div className="flex items-center gap-2 text-sm font-medium">
-             <span>Total: {activities.length} aktivitas</span>
-           </div>
-           {lastFetch && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+    <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-card/50 border border-border/50 p-2.5 rounded-lg">
+        <div className="flex items-center gap-3 text-xs">
+          <span className="font-medium">{activities.length} activities</span>
+          {lastFetch && (
+            <span className="text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              Update: {formatLastFetch(lastFetch)}
-            </div>
-           )}
+              {formatLastFetch(lastFetch)}
+            </span>
+          )}
         </div>
         
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto">
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
-              <SelectValue placeholder="Sort by" />
+            <SelectTrigger className="w-[120px] h-7 text-xs bg-background border-border">
+              <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date_desc">Terbaru</SelectItem>
-              <SelectItem value="date_asc">Terlama</SelectItem>
-              <SelectItem value="distance_desc">Jarak Terjauh</SelectItem>
-              <SelectItem value="duration_desc">Durasi Terlama</SelectItem>
+            <SelectContent className="bg-popover border-border">
+              <SelectItem value="date_desc">Newest</SelectItem>
+              <SelectItem value="date_asc">Oldest</SelectItem>
+              <SelectItem value="distance_desc">Distance</SelectItem>
+              <SelectItem value="duration_desc">Duration</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+            <SelectTrigger className="w-[70px] h-7 text-xs bg-background border-border">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-border">
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="15">15</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="25">25</SelectItem>
             </SelectContent>
           </Select>
           
@@ -174,70 +183,61 @@ export function ActivityList() {
             size="sm" 
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
-            className="flex-1 sm:flex-none h-8 text-xs"
+            className="h-7 px-2 text-xs"
           >
-            <RefreshCw className={`h-3 w-3 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-            Refresh
+            <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
 
       {error && (
-        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{error}</span>
-          <Button variant="ghost" size="sm" onClick={clearError} className="ml-auto text-red-400 hover:text-red-300">
-            Tutup
+        <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="flex-1">{error}</span>
+          <Button variant="ghost" size="sm" onClick={clearError} className="h-6 px-2 text-xs text-red-400 hover:text-red-300">
+            Close
           </Button>
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {Object.entries(groupedActivities).map(([monthYear, groupActivities]) => (
-          <div key={monthYear} className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
-              <Calendar className="h-4 w-4" />
+          <div key={monthYear} className="space-y-1.5">
+            <h3 className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 sticky top-14 bg-background/95 backdrop-blur-sm py-1 z-10">
+              <Calendar className="h-3 w-3" />
               {monthYear}
             </h3>
-            <div className="grid gap-3">
-              {groupActivities.map((activity, index) => {
-                 // Global index calculation logic can go here if needed, but simple numbering per page is easier or continuous
-                 const globalIndex = activities.indexOf(activity) + 1;
-                 return (
-                   <div key={activity.id} className="relative">
-                      {/* Optional: Add numbering badge if desired, though usually visual clutter on cards */}
-                      <ActivityCard activity={activity} />
-                   </div>
-                 );
-              })}
+            <div className="space-y-1">
+              {groupActivities.map((activity) => (
+                <ActivityCard key={activity.id} activity={activity} />
+              ))}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-4 border-t border-border">
+        <div className="flex items-center justify-center gap-2 pt-3 border-t border-border">
           <Button
             variant="outline"
             size="icon"
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="h-8 w-8"
+            className="h-7 w-7"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
-          <span className="text-sm text-muted-foreground px-2">
-            Halaman {currentPage} dari {totalPages}
+          <span className="text-xs text-muted-foreground px-2">
+            {currentPage} / {totalPages}
           </span>
           <Button
             variant="outline"
             size="icon"
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="h-8 w-8"
+            className="h-7 w-7"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         </div>
       )}

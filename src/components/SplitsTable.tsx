@@ -33,7 +33,7 @@ export function SplitsTable({ splits, type = "metric" }: SplitsTableProps) {
             <tr className="text-muted-foreground border-b border-white/10">
               <th className="text-left py-2 px-2">{unit.toUpperCase()}</th>
               <th className="text-right py-2 px-2">Pace</th>
-              <th className="text-right py-2 px-2">Waktu</th>
+              <th className="text-right py-2 px-2">Time</th>
               <th className="text-right py-2 px-2 hidden sm:table-cell">Elev</th>
               <th className="text-right py-2 px-2 hidden sm:table-cell">HR</th>
             </tr>
@@ -90,12 +90,12 @@ export function SplitsTable({ splits, type = "metric" }: SplitsTableProps) {
             {expanded ? (
               <>
                 <ChevronUp className="h-4 w-4" />
-                Tampilkan lebih sedikit
+                Show less
               </>
             ) : (
               <>
                 <ChevronDown className="h-4 w-4" />
-                Tampilkan {splits.length - 10} lagi
+                Show {splits.length - 10} more
               </>
             )}
           </button>

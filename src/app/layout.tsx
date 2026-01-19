@@ -4,8 +4,8 @@ import { Header } from "@/components/Header";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "AI Workout Analyzer",
-  description: "Analyze your Strava workouts with AI-powered physiological insights",
+  title: "CardioKernel",
+  description: "AI-powered physiological analysis for your Strava workouts",
   icons: {
     icon: "/icon.svg",
   },

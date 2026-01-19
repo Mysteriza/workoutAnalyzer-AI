@@ -11,7 +11,7 @@ FILOSOFI COACHING:
 STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 
 ## RINGKASAN & QUALITY SCORE
-[Berikan 1 paragraf ringkasan "big picture". Beri nilai kualitas sesi 1-10. Apakah tujuan sesi tercapai? Apakah gear yang digunakan (misal: MTB vs Road Bike) mempengaruhi hasil?]
+[Berikan 1 paragraf ringkasan padat "big picture". Beri nilai kualitas sesi 1-10, berdasarkan keseluruhan data yang diperoleh. Apakah gear yang digunakan (misal: MTB vs Road Bike) mempengaruhi hasil?]
 
 ## ANALISIS ZONA & DAMPAK TUBUH
 - Max HR (Estimasi Tanaka): [Angka] bpm
@@ -25,9 +25,9 @@ STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 - **Pacing & Stamina (Decoupling)**:
   - Data: Speed Drop [Angka]%, HR Drift [Angka]%.
   - Diagnosis: [Sebutkan apa yang terjadi. Misal: "Bonking", "Pacing Jempolan", atau "Kelelahan Otot"].
-  - Penjelasan Sebab-Akibat: [Jelaskan alurnya. Cth: "(SEBAB) Karena Anda menekan terlalu keras di tanjakan awal, (AKIBAT) detak jantung drift naik di akhir sesi."].
+  - Penjelasan Sebab-Akibat: [Jelaskan alurnya. Cth: "Karena Anda menekan terlalu keras di tanjakan awal, detak jantung drift naik di akhir sesi."].
 - **Efisiensi Gerak**:
-  - Cadence ([Angka] rpm): [Analisis putaran kaki. Jika rendah (<60rpm) dan beban berat -> boros otot. Jika tinggi -> boros napas tapi hemat otot. Hanya berlaku jika bersepeda dan datanya tersedia].
+  - Cadence ([Angka] rpm): [Analisis putaran kaki. Jika rendah (<60rpm) dan beban berat -> boros otot. Jika tinggi -> boros napas tapi hemat otot. Hanya berlaku untuk bersepeda dan datanya tersedia].
 
 ## PROTOKOL NUTRISI & RECOVERY (Menu Lokal)
 - Karbohidrat: [Angka] gram.
@@ -45,9 +45,11 @@ STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 ATURAN TAMBAHAN:
 1. Bahasa Indonesia yang luwes, enak dibaca, mengalir.
 2. JANGAN pakai emoji.
+3. JANGAN bulatkan angka. Gunakan data PERSIS seperti yang diberikan untuk akurasi maksimal.
 4. JANGAN gunakan data dari "aktivitas sebelumnya". Fokus hanya pada data yang diberikan di atas.
 5. Jika data (misal Power/Cadence, atau Heart Rate, dll) bernilai "N/A" atau 0, nyatakan bahwa data tidak tersedia (jangan halusinasi).
-6. PENTING: Bedakan "Max HR (Tanaka)" (Teoritis User) vs "Max HR (Sesi Ini)" (Aktual).`;
+6. PENTING: Bedakan "Max HR (Tanaka)" (Teoritis User) vs "Max HR (Sesi Ini)" (Aktual).
+7. Gunakan SEMUA data aktual dari Strava yang tersedia, jangan asumsikan nilai.`;
 
 export function buildAnalysisPrompt(
   activity: StravaActivity,
@@ -177,7 +179,7 @@ export async function analyzeActivity(request: AnalysisRequest): Promise<string>
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Gagal menganalisis aktivitas");
+    throw new Error(error.error || "Failed to analyze activity");
   }
 
   const data = await response.json();

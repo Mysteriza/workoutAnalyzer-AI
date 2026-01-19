@@ -1,11 +1,13 @@
-import Link from "next/link";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Activity, Settings, User } from "lucide-react";
-import { auth } from "@/lib/auth";
+"use client";
 
-export async function Header() {
-  const session = await auth();
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Activity, LayoutDashboard } from "lucide-react";
+import { UserDropdown } from "@/components/UserDropdown";
+
+export function Header() {
+  const { data: session } = useSession();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -13,49 +15,29 @@ export async function Header() {
         <Link href="/" className="flex items-center space-x-2">
           <Activity className="h-6 w-6 text-primary" />
           <span className="hidden font-bold sm:inline-block">
-            Workout Analyzer AI
+            CardioKernel
           </span>
         </Link>
-        <div className="flex items-center space-x-2">
-          <nav className="flex items-center space-x-4">
-            <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
-              <span className="sm:hidden">
-                <Activity className="h-5 w-5" />
-              </span>
+        <nav className="flex items-center gap-1">
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <LayoutDashboard className="h-4 w-4 sm:hidden" />
               <span className="hidden sm:inline-block">Dashboard</span>
+            </Button>
+          </Link>
+          {session ? (
+            <UserDropdown
+              userName={session.user?.name}
+              userImage={session.user?.image}
+            />
+          ) : (
+            <Link href="/login">
+              <Button variant="ghost" size="sm">
+                Login
+              </Button>
             </Link>
-            <Link href="/settings" className="text-sm font-medium transition-colors hover:text-primary">
-              <span className="sm:hidden">
-                <Settings className="h-5 w-5" />
-              </span>
-              <span className="hidden sm:inline-block">Settings</span>
-            </Link>
-            {session ? (
-              <div className="flex items-center gap-2">
-                 <span className="text-xs text-muted-foreground hidden sm:inline-block truncate max-w-[100px]">
-                   {session.user?.name}
-                 </span>
-                 {session.user?.image && (
-                   <div className="relative h-6 w-6">
-                     <Image 
-                       src={session.user.image} 
-                       alt="User" 
-                       fill 
-                       className="rounded-full object-cover" 
-                       unoptimized 
-                     />
-                   </div>
-                 )}
-              </div>
-            ) : (
-               <Link href="/login">
-                 <Button variant="ghost" size="sm">
-                   Login
-                 </Button>
-               </Link>
-            )}
-          </nav>
-        </div>
+          )}
+        </nav>
       </div>
     </header>
   );

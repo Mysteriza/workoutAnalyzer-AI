@@ -70,19 +70,19 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
         setAnalyzedAt(now);
         saveAnalysis(activity.id, result);
       } else {
-        throw new Error("Hasil analisis kosong dari AI.");
+        throw new Error("AI analysis result is empty.");
       }
     } catch (err: unknown) {
       const error = err as { message?: string; retryAfter?: number };
       if (error.message && error.message.includes("429")) {
         if (typeof error.retryAfter === 'number') {
           setCooldownSeconds(error.retryAfter);
-          setError(`Cooldown aktif. Tunggu ${error.retryAfter} detik.`);
+          setError(`Cooldown active. Wait ${error.retryAfter} seconds.`);
         } else {
-          setError(error.message || "Gagal menganalisis aktivitas");
+          setError(error.message || "Failed to analyze activity");
         }
       } else {
-        setError(error.message || "Gagal menganalisis aktivitas");
+        setError(error.message || "Failed to analyze activity");
       }
     } finally {
       setIsLoading(false);
@@ -116,7 +116,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
         <CardContent className="py-6">
           <div className="flex items-center gap-3 text-orange-500 bg-orange-500/10 p-4 rounded-lg border border-orange-500/20">
             <AlertCircle className="h-5 w-5" />
-            <p className="text-sm">Lengkapi profil fisiologis di Settings untuk menggunakan AI Analysis.</p>
+            <p className="text-sm">Complete your physiological profile in Settings to use AI Analysis.</p>
           </div>
         </CardContent>
       </Card>
@@ -124,18 +124,18 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   }
 
   const formattedTime = analyzedAt
-    ? new Date(analyzedAt).toLocaleTimeString("id-ID", {
+    ? new Date(analyzedAt).toLocaleTimeString("en-US", {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
         hour12: false
-      }).replace(/\./g, ":")
+      })
     : "";
 
   const formattedDate = analyzedAt
-    ? new Date(analyzedAt).toLocaleDateString("id-ID", {
+    ? new Date(analyzedAt).toLocaleDateString("en-US", {
         day: 'numeric',
-        month: 'numeric',
+        month: 'short',
         year: 'numeric'
     })
     : "";
@@ -152,21 +152,21 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
             {analyzedAt && analysis && (
                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                  <Clock className="h-3 w-3" />
-                 <span>Dianalisis: {formattedDate}, {formattedTime}</span>
+                 <span>Analyzed: {formattedDate}, {formattedTime}</span>
                </div>
             )}
           </div>
           <div className="flex gap-2">
               {analysis && (
                 <>
-                  <Button variant="outline" size="icon" onClick={handleDownload} title="Export Analisis AI">
+                  <Button variant="outline" size="icon" onClick={handleDownload} title="Export AI Analysis">
                       <Download className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => setShowReAnalyzeModal(true)}
-                    title="Analisis Ulang"
+                    title="Re-analyze"
                     disabled={cooldownSeconds > 0}
                   >
                     {cooldownSeconds > 0 ? (
@@ -175,7 +175,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                         <RefreshCw className="h-4 w-4" />
                     )}
                   </Button>
-                  <Button variant="outline" size="icon" onClick={() => setShowDeleteModal(true)} className="text-red-400 hover:text-red-500" title="Hapus">
+                  <Button variant="outline" size="icon" onClick={() => setShowDeleteModal(true)} className="text-red-400 hover:text-red-500" title="Delete">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </>
@@ -189,14 +189,14 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                 <Brain className="h-12 w-12 text-primary" />
               </div>
               <div className="space-y-2 max-w-sm">
-                <h3 className="font-semibold text-lg">Siap Menganalisis</h3>
+                <h3 className="font-semibold text-lg">Ready to Analyze</h3>
                 <p className="text-sm text-muted-foreground text-pretty">
-                  AI akan menganalisis detak jantung, kecepatan, dan data stream lainnya untuk memberikan insight performa.
+                  AI will analyze heart rate, speed, and other stream data to provide performance insights.
                 </p>
               </div>
               <Button onClick={() => handleAnalyze(false)} className="gradient-primary text-white shadow-lg shadow-blue-500/20">
                 <Sparkles className="mr-2 h-4 w-4" />
-                Mulai Analisis
+                Start Analysis
               </Button>
             </div>
           )}
@@ -205,8 +205,8 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
             <div className="flex flex-col items-center justify-center py-12 gap-4 animate-in fade-in duration-500">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <div className="text-center space-y-1">
-                 <p className="font-medium">Menganalisis Aktivitas...</p>
-                 <p className="text-muted-foreground text-xs">AI sedang mempelajari data latihan Anda</p>
+                 <p className="font-medium">Analyzing Activity...</p>
+                 <p className="text-muted-foreground text-xs">AI is studying your workout data</p>
               </div>
             </div>
           )}
@@ -220,11 +220,11 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
 
               {cooldownSeconds > 0 ? (
                  <Button variant="outline" size="sm" disabled>
-                    Tunggu {cooldownSeconds}s
+                    Wait {cooldownSeconds}s
                  </Button>
               ) : (
                  <Button variant="outline" size="sm" onClick={() => handleAnalyze(true)}>
-                    Coba Lagi
+                    Retry
                  </Button>
               )}
             </div>
@@ -278,18 +278,18 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
         isOpen={showReAnalyzeModal}
         onClose={() => setShowReAnalyzeModal(false)}
         onConfirm={() => handleAnalyze(true)}
-        title="Analisis Ulang?"
-        description="Analisis ulang akan menggunakan kuota AI dan menimpa hasil analisis sebelumnya. Apakah Anda yakin?"
-        confirmLabel="Ya, Analisis Ulang"
+        title="Re-analyze?"
+        description="Re-analysis will use AI quota and overwrite the previous analysis. Are you sure?"
+        confirmLabel="Yes, Re-analyze"
       />
 
       <ConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDelete}
-        title="Hapus Analisis"
-        description="Apakah Anda yakin ingin menghapus hasil analisis ini secara permanen?"
-        confirmLabel="Hapus"
+        title="Delete Analysis"
+        description="Are you sure you want to permanently delete this analysis?"
+        confirmLabel="Delete"
         isDestructive={true}
       />
     </>

@@ -93,14 +93,14 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold">Aktivitas Tidak Ditemukan</h1>
+          <h1 className="text-2xl font-bold">Activity Not Found</h1>
           <p className="text-muted-foreground">
-            Aktivitas ini tidak dapat ditemukan atau Anda tidak memiliki akses.
+            This activity could not be found or you don't have access.
           </p>
           <Link href="/">
             <Button>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Kembali ke Dashboard
+              Back to Dashboard
             </Button>
           </Link>
         </div>
@@ -116,7 +116,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         <Link href="/">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">Kembali</span>
+            <span className="hidden sm:inline">Back</span>
           </Button>
         </Link>
         <div className="flex gap-2">
@@ -180,7 +180,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
                 <MapPin className="h-4 w-4 text-blue-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Jarak</p>
+                <p className="text-xs text-muted-foreground">Distance</p>
                 <p className="text-sm font-bold truncate">{formatDistance(activity.distance)}</p>
               </div>
             </div>
@@ -194,7 +194,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
                 <Clock className="h-4 w-4 text-green-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Durasi</p>
+                <p className="text-xs text-muted-foreground">Duration</p>
                 <p className="text-sm font-bold truncate">{formatDuration(activity.moving_time)}</p>
               </div>
             </div>
@@ -208,7 +208,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
                 <TrendingUp className="h-4 w-4 text-yellow-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Elevasi</p>
+                <p className="text-xs text-muted-foreground">Elevation</p>
                 <p className="text-sm font-bold truncate">{Math.round(activity.total_elevation_gain)} m</p>
               </div>
             </div>
@@ -305,7 +305,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
                   <Flame className="h-4 w-4 text-rose-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Kalori</p>
+                  <p className="text-xs text-muted-foreground">Calories</p>
                   <p className="text-sm font-bold truncate">{Math.round(activity.calories)}</p>
                 </div>
               </div>
@@ -413,7 +413,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
           ) : (
             <Card className="glass">
               <CardContent className="flex items-center justify-center py-8">
-                <p className="text-muted-foreground text-sm">Tidak ada segment pada aktivitas ini</p>
+                <p className="text-muted-foreground text-sm">No segments in this activity</p>
               </CardContent>
             </Card>
           )}
@@ -425,7 +425,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
           ) : (
             <Card className="glass">
               <CardContent className="flex items-center justify-center py-8">
-                <p className="text-muted-foreground text-sm">Tidak ada splits pada aktivitas ini</p>
+                <p className="text-muted-foreground text-sm">No splits in this activity</p>
               </CardContent>
             </Card>
           )}
