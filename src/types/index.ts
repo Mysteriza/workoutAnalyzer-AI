@@ -158,11 +158,13 @@ export interface AnalysisRequest {
   activity: StravaActivity;
   streamSample: ChartDataPoint[];
   userProfile: UserProfile;
+  forceRefresh?: boolean;
 }
 
 export interface APIAnalysisPayload {
   prompt: string;
   activityId: number;
+  forceRefresh?: boolean;
 }
 
 export interface AnalysisResponse {

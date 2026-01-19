@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import dbConnect from "@/lib/db";
+import Activity from "@/models/Activity";
+import User from "@/models/User";
 
 const STRAVA_API_BASE = "https://www.strava.com/api/v3";
 
@@ -27,6 +31,23 @@ export async function GET(
   const accessToken = authHeader.replace("Bearer ", "");
 
   try {
+    // 1. Check Cache in DB First
+    await dbConnect();
+    const existingActivity = await Activity.findOne({ stravaId: id });
+
+    // Caching Strategy: Return cached if exists.
+    // User requested "not fetch API again" when revisiting.
+    // We assume activity details (streams) don't change often.
+    if (existingActivity) {
+      console.log(`Serving activity ${id} from DB cache.`);
+      return NextResponse.json({
+        activity: existingActivity.data,
+        streams: existingActivity.streams || {},
+      });
+    }
+
+    // 2. Fetch from Strava API (Cache Miss)
+    console.log(`Fetching activity ${id} from Strava API...`);
     const [activityResponse, streamsResponse] = await Promise.all([
       fetch(`${STRAVA_API_BASE}/activities/${id}?include_all_efforts=true`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -47,6 +68,7 @@ export async function GET(
 
     const activityDetail = await activityResponse.json();
     
+    // Process Streams
     const streams: Record<string, number[]> = {
       time: [],
       distance: [],
@@ -60,6 +82,30 @@ export async function GET(
           streams[key] = value.data;
         }
       }
+    }
+
+    // 3. Save to DB for Caching
+    // We need userId to associate.
+    // We can get it from Session OR look up User by stravaId (which is usually in activityDetail.athlete.id)
+    const session = await auth();
+    let userId = session?.user?.id;
+
+    if (!userId && activityDetail.athlete?.id) {
+       // Look up internal user ID by Strava ID
+       const user = await User.findOne({ stravaId: activityDetail.athlete.id.toString() });
+       if (user) userId = user._id.toString();
+    }
+
+    if (userId) {
+      await Activity.create({
+        userId,
+        stravaId: id,
+        name: activityDetail.name,
+        data: activityDetail,
+        streams: streams,
+        lastFetchedAt: new Date(),
+      });
+      console.log(`Activity ${id} cached to DB.`);
     }
 
     return NextResponse.json({

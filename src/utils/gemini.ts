@@ -166,6 +166,7 @@ export async function analyzeActivity(request: AnalysisRequest): Promise<string>
   const payload: APIAnalysisPayload = {
     prompt,
     activityId: request.activity.id,
+    forceRefresh: request.forceRefresh,
   };
 
   const response = await fetch("/api/analyze", {

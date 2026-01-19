@@ -5,6 +5,7 @@ export interface IAnalysis extends Document {
   activityId: number; // Strava Activity ID
   content: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const AnalysisSchema: Schema<IAnalysis> = new Schema(

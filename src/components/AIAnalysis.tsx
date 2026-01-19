@@ -20,8 +20,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   const [analyzedAt, setAnalyzedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Modal States
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [showReAnalyzeModal, setShowReAnalyzeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -33,27 +32,38 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
     }
   }, [activity.id]);
 
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setInterval(() => {
+        setCooldownSeconds((prev) => {
+          if (prev <= 1) return 0;
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [cooldownSeconds]);
+
   const handleAnalyze = async (isReAnalyze = false) => {
     if (!userProfile) return;
+    if (cooldownSeconds > 0 && isReAnalyze) return;
 
     setIsLoading(true);
     setError(null);
-    if (isReAnalyze) setAnalysis(null); // Clear previous only if re-analyzing
+    if (isReAnalyze) setAnalysis(null);
 
     try {
-      // 1. Prepare Data
       const sampleSize = Math.min(streamData.length, 200);
       const step = Math.max(1, Math.floor(streamData.length / sampleSize));
-      const streamSample = streamData.filter((_, index) => index % step === 0);
+      const streamSample = streamData.filter((_: ChartDataPoint, index: number) => index % step === 0);
 
-      // 2. Call API
       const result = await analyzeActivity({
         activity,
         streamSample,
         userProfile: userProfile,
+        forceRefresh: isReAnalyze
       });
 
-      // 3. Update State & Storage
       if (result && result.trim().length > 0) {
         setAnalysis(result);
         const now = new Date().toISOString();
@@ -62,12 +72,21 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
       } else {
         throw new Error("Hasil analisis kosong dari AI.");
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal menganalisis aktivitas");
-      // If re-analyze failed, try to restore old analysis if exists? 
-      // Nah, let user try again.
+    } catch (err: unknown) {
+      const error = err as { message?: string; retryAfter?: number };
+      if (error.message && error.message.includes("429")) {
+        if (typeof error.retryAfter === 'number') {
+          setCooldownSeconds(error.retryAfter);
+          setError(`Cooldown aktif. Tunggu ${error.retryAfter} detik.`);
+        } else {
+          setError(error.message || "Gagal menganalisis aktivitas");
+        }
+      } else {
+        setError(error.message || "Gagal menganalisis aktivitas");
+      }
     } finally {
       setIsLoading(false);
+      setShowReAnalyzeModal(false);
     }
   };
 
@@ -75,6 +94,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
     deleteAnalysis(activity.id);
     setAnalysis(null);
     setAnalyzedAt(null);
+    setShowDeleteModal(false);
   };
 
   const handleDownload = () => {
@@ -102,17 +122,16 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
       </Card>
     );
   }
-  
-  // Format Time: 20:52:35
-  const formattedTime = analyzedAt 
-    ? new Date(analyzedAt).toLocaleTimeString("id-ID", { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit', 
-        hour12: false 
-      }).replace(/\./g, ":") // Ensure colons if locale uses dots
+
+  const formattedTime = analyzedAt
+    ? new Date(analyzedAt).toLocaleTimeString("id-ID", {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).replace(/\./g, ":")
     : "";
-    
+
   const formattedDate = analyzedAt
     ? new Date(analyzedAt).toLocaleDateString("id-ID", {
         day: 'numeric',
@@ -143,8 +162,18 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                   <Button variant="outline" size="icon" onClick={handleDownload} title="Export Analisis AI">
                       <Download className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" onClick={() => setShowReAnalyzeModal(true)} title="Analisis Ulang">
-                    <RefreshCw className="h-4 w-4" />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowReAnalyzeModal(true)}
+                    title="Analisis Ulang"
+                    disabled={cooldownSeconds > 0}
+                  >
+                    {cooldownSeconds > 0 ? (
+                        <span className="text-xs font-bold text-orange-500">{cooldownSeconds}</span>
+                    ) : (
+                        <RefreshCw className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button variant="outline" size="icon" onClick={() => setShowDeleteModal(true)} className="text-red-400 hover:text-red-500" title="Hapus">
                     <Trash2 className="h-4 w-4" />
@@ -188,9 +217,16 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                 <AlertCircle className="h-6 w-6 text-red-400" />
               </div>
               <p className="text-red-400 text-center text-sm px-4">{error}</p>
-              <Button variant="outline" size="sm" onClick={() => handleAnalyze(true)}>
-                Coba Lagi
-              </Button>
+
+              {cooldownSeconds > 0 ? (
+                 <Button variant="outline" size="sm" disabled>
+                    Tunggu {cooldownSeconds}s
+                 </Button>
+              ) : (
+                 <Button variant="outline" size="sm" onClick={() => handleAnalyze(true)}>
+                    Coba Lagi
+                 </Button>
+              )}
             </div>
           )}
 
