@@ -15,10 +15,12 @@ export function UserDropdown({ userName, userImage }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [isResetting, setIsResetting] = useState(false);
 
   const handleLogout = () => {
+    localStorage.clear();
     signOut({ callbackUrl: "/login" });
   };
 
@@ -100,7 +102,10 @@ export function UserDropdown({ userName, userImage }: UserDropdownProps) {
                   About
                 </button>
                 <button
-                  onClick={handleLogout}
+                  onClick={() => {
+                    setIsOpen(false);
+                    setShowLogoutModal(true);
+                  }}
                   className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent transition-colors"
                 >
                   <LogOut className="h-4 w-4" />
@@ -215,6 +220,36 @@ export function UserDropdown({ userName, userImage }: UserDropdownProps) {
                 onClick={handleResetData}
               >
                 {isResetting ? "Resetting..." : "Reset All Data"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-sm mx-4 rounded-lg border bg-white dark:bg-zinc-900 p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-full bg-orange-500/10">
+                <LogOut className="h-5 w-5 text-orange-500" />
+              </div>
+              <h2 className="text-lg font-bold">Confirm Logout</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">
+              Are you sure you want to logout? You will need to reconnect with Strava to continue.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleLogout}
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                Yes, Logout
               </Button>
             </div>
           </div>

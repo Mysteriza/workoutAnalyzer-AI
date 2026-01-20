@@ -20,13 +20,27 @@ export function ActivityList() {
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
   
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState<SortOption>("date_desc");
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("activity_sort_preference");
+      if (saved === "date_asc" || saved === "date_desc" || saved === "name") {
+        return saved as SortOption;
+      }
+    }
+    return "date_desc";
+  });
   const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPageOption>(15);
 
   useEffect(() => {
     initializeFromCache();
     setLastFetch(getActivitiesLastFetch());
   }, [initializeFromCache]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("activity_sort_preference", sortBy);
+    }
+  }, [sortBy]);
 
   const handleRefresh = useCallback(async () => {
     if (!isConnected || isRefreshing) return;
