@@ -1,12 +1,31 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
-import User from "@/models/User";
+import GlobalUsage from "@/models/GlobalUsage";
 
 function getPacificDateKey(): string {
   const now = new Date();
   const pacificTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
   return pacificTime.toISOString().split("T")[0];
+}
+
+async function getOrCreateGlobalUsage() {
+  const todayPacific = getPacificDateKey();
+  
+  let globalUsage = await GlobalUsage.findOne({});
+  
+  if (!globalUsage) {
+    globalUsage = await GlobalUsage.create({
+      usageCount: 0,
+      lastReset: todayPacific
+    });
+  } else if (globalUsage.lastReset !== todayPacific) {
+    globalUsage.usageCount = 0;
+    globalUsage.lastReset = todayPacific;
+    await globalUsage.save();
+  }
+  
+  return globalUsage;
 }
 
 export async function GET() {
@@ -18,32 +37,19 @@ export async function GET() {
 
     await dbConnect();
 
-    // @ts-ignore
-    const stravaId = session.user.stravaId;
-    const user = await User.findOne({ stravaId });
-
-    if (!user) {
-      return NextResponse.json({ count: 0, lastReset: getPacificDateKey() });
-    }
-
+    const globalUsage = await getOrCreateGlobalUsage();
     const todayPacific = getPacificDateKey();
-    
-    if (user.usageLastReset !== todayPacific) {
-      user.usageCount = 0;
-      user.usageLastReset = todayPacific;
-      await user.save();
-    }
 
     return NextResponse.json({ 
-      count: user.usageCount || 0, 
-      lastReset: user.usageLastReset || todayPacific 
+      count: globalUsage.usageCount || 0, 
+      lastReset: globalUsage.lastReset || todayPacific 
     });
   } catch {
     return NextResponse.json({ error: "Failed to get usage" }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -52,28 +58,27 @@ export async function POST(req: Request) {
 
     await dbConnect();
 
-    // @ts-ignore
-    const stravaId = session.user.stravaId;
     const todayPacific = getPacificDateKey();
-
-    const user = await User.findOne({ stravaId });
     
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    if (user.usageLastReset !== todayPacific) {
-      user.usageCount = 1;
-      user.usageLastReset = todayPacific;
+    let globalUsage = await GlobalUsage.findOne({});
+    
+    if (!globalUsage) {
+      globalUsage = await GlobalUsage.create({
+        usageCount: 1,
+        lastReset: todayPacific
+      });
+    } else if (globalUsage.lastReset !== todayPacific) {
+      globalUsage.usageCount = 1;
+      globalUsage.lastReset = todayPacific;
+      await globalUsage.save();
     } else {
-      user.usageCount = (user.usageCount || 0) + 1;
+      globalUsage.usageCount = (globalUsage.usageCount || 0) + 1;
+      await globalUsage.save();
     }
-    
-    await user.save();
 
     return NextResponse.json({ 
-      count: user.usageCount, 
-      lastReset: user.usageLastReset 
+      count: globalUsage.usageCount, 
+      lastReset: globalUsage.lastReset 
     });
   } catch {
     return NextResponse.json({ error: "Failed to update usage" }, { status: 500 });
@@ -91,25 +96,19 @@ export async function PUT(req: Request) {
 
     await dbConnect();
 
-    // @ts-ignore
-    const stravaId = session.user.stravaId;
     const todayPacific = getPacificDateKey();
-
-    const user = await User.findOneAndUpdate(
-      { stravaId },
+    
+    const globalUsage = await GlobalUsage.findOneAndUpdate(
+      {},
       { 
-        $set: { usageCount: count, usageLastReset: todayPacific }
+        $set: { usageCount: count, lastReset: todayPacific }
       },
-      { new: true }
+      { new: true, upsert: true }
     );
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
     return NextResponse.json({ 
-      count: user.usageCount, 
-      lastReset: user.usageLastReset 
+      count: globalUsage.usageCount, 
+      lastReset: globalUsage.lastReset 
     });
   } catch {
     return NextResponse.json({ error: "Failed to set usage" }, { status: 500 });

@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 interface UsageState {
   count: number;
@@ -18,64 +17,53 @@ function getPacificDateKey(): string {
 }
 
 export const useUsageStore = create<UsageState>()(
-  persist(
-    (set, get) => ({
-      count: 0,
-      lastReset: getPacificDateKey(),
-      isLoaded: false,
+  (set, get) => ({
+    count: 0,
+    lastReset: getPacificDateKey(),
+    isLoaded: false,
 
-      getUsage: () => {
-        const state = get();
-        const todayPacific = getPacificDateKey();
-        
-        if (state.lastReset !== todayPacific) {
-          return 0;
+    getUsage: () => {
+      const state = get();
+      const todayPacific = getPacificDateKey();
+      
+      if (state.lastReset !== todayPacific) {
+        return 0;
+      }
+      return state.count;
+    },
+
+    setUsage: (count: number) => {
+      set({ count, lastReset: getPacificDateKey() });
+    },
+
+    incrementUsage: async () => {
+      try {
+        const response = await fetch("/api/usage", { method: "POST" });
+        if (response.ok) {
+          const data = await response.json();
+          set({ count: data.count, lastReset: data.lastReset });
         }
-        return state.count;
-      },
-
-      setUsage: (count: number) => {
-        set({ count, lastReset: getPacificDateKey() });
-      },
-
-      incrementUsage: async () => {
+      } catch {
         const todayPacific = getPacificDateKey();
-        
         set((state) => ({
           count: state.lastReset === todayPacific ? state.count + 1 : 1,
           lastReset: todayPacific,
         }));
+      }
+    },
 
-        try {
-          const response = await fetch("/api/usage", { method: "POST" });
-          if (response.ok) {
-            const data = await response.json();
-            set({ count: data.count, lastReset: data.lastReset });
-          }
-        } catch {
-        }
-      },
-
-      loadFromCloud: async () => {
-        try {
-          const response = await fetch("/api/usage");
-          if (response.ok) {
-            const data = await response.json();
-            const todayPacific = getPacificDateKey();
-            
-            if (data.lastReset === todayPacific) {
-              set({ count: data.count, lastReset: data.lastReset, isLoaded: true });
-            } else {
-              set({ count: 0, lastReset: todayPacific, isLoaded: true });
-            }
-          }
-        } catch {
+    loadFromCloud: async () => {
+      try {
+        const response = await fetch("/api/usage");
+        if (response.ok) {
+          const data = await response.json();
+          set({ count: data.count, lastReset: data.lastReset, isLoaded: true });
+        } else {
           set({ isLoaded: true });
         }
-      },
-    }),
-    {
-      name: "cardiokernel-usage",
-    }
-  )
+      } catch {
+        set({ isLoaded: true });
+      }
+    },
+  })
 );
