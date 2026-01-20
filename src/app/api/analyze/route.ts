@@ -40,7 +40,7 @@ export async function POST(req: Request) {
 
     const existingAnalysis = await Analysis.findOne({ userId, activityId });
 
-    if (existingAnalysis) {
+    if (existingAnalysis && existingAnalysis.content && existingAnalysis.content.trim().length > 0) {
         if (forceRefresh) {
             const lastUpdate = new Date(existingAnalysis.updatedAt).getTime();
             const now = Date.now();

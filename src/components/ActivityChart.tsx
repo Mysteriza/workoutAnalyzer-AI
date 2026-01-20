@@ -142,7 +142,7 @@ export function ActivityChart({ data, isFromCache }: ActivityChartProps) {
         <CardContent className="flex flex-col items-center justify-center h-48 gap-2">
           <Icon className="h-8 w-8 text-muted-foreground" />
           <p className="text-muted-foreground text-sm text-center">
-            Data {label.toLowerCase()} tidak tersedia
+            {label} data not available
           </p>
         </CardContent>
       </Card>
