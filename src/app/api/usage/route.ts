@@ -56,18 +56,20 @@ export async function POST(req: Request) {
     const stravaId = session.user.stravaId;
     const todayPacific = getPacificDateKey();
 
-    const user = await User.findOneAndUpdate(
-      { stravaId },
-      { 
-        $inc: { usageCount: 1 },
-        $set: { usageLastReset: todayPacific }
-      },
-      { new: true, upsert: false }
-    );
-
+    const user = await User.findOne({ stravaId });
+    
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    if (user.usageLastReset !== todayPacific) {
+      user.usageCount = 1;
+      user.usageLastReset = todayPacific;
+    } else {
+      user.usageCount = (user.usageCount || 0) + 1;
+    }
+    
+    await user.save();
 
     return NextResponse.json({ 
       count: user.usageCount, 

@@ -6,12 +6,15 @@ import {
   hasCachedActivities,
   mergeActivities 
 } from "@/utils/storage";
+import { stravaFetch } from "@/utils/stravaFetch";
 
 interface ActivityState {
   activities: StravaActivity[];
   selectedActivity: StravaActivity | null;
   activityDetail: ActivityDetail | null;
   streamData: ChartDataPoint[];
+  streamCache: Map<number, { data: ChartDataPoint[]; detail: ActivityDetail }>;
+  isFromCache: boolean;
   isLoading: boolean;
   error: string | null;
   
@@ -21,6 +24,7 @@ interface ActivityState {
   setSelectedActivity: (activity: StravaActivity | null) => void;
   clearError: () => void;
   initializeFromCache: () => void;
+  clearStreamCache: () => void;
 }
 
 export const useActivityStore = create<ActivityState>((set, get) => ({
@@ -28,6 +32,8 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   selectedActivity: null,
   activityDetail: null,
   streamData: [],
+  streamCache: new Map(),
+  isFromCache: false,
   isLoading: false,
   error: null,
 
@@ -47,7 +53,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const response = await fetch("/api/strava/activities?per_page=50", {
+      const response = await stravaFetch("/api/strava/activities?per_page=50", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -93,10 +99,22 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       return;
     }
 
-    set({ isLoading: true, error: null });
+    const cached = get().streamCache.get(activityId);
+    if (cached) {
+      set({ 
+        streamData: cached.data, 
+        activityDetail: cached.detail,
+        isFromCache: true,
+        isLoading: false,
+        error: null
+      });
+      return;
+    }
+
+    set({ isLoading: true, error: null, isFromCache: false });
     
     try {
-      const response = await fetch(`/api/strava/streams/${activityId}`, {
+      const response = await stravaFetch(`/api/strava/streams/${activityId}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -129,9 +147,12 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
         });
       }
 
+      get().streamCache.set(activityId, { data: chartData, detail: data });
+
       set({ 
         activityDetail: data,
         streamData: chartData, 
+        isFromCache: false,
         isLoading: false 
       });
     } catch (err) {
@@ -153,5 +174,9 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
 
   clearError: () => {
     set({ error: null });
+  },
+
+  clearStreamCache: () => {
+    set({ streamCache: new Map() });
   },
 }));

@@ -48,7 +48,7 @@ interface ActivityDetailPageProps {
 export default function ActivityDetailPage({ params }: ActivityDetailPageProps) {
   const { id } = use(params);
   const { getValidAccessToken, isConnected, initializeFromStorage } = useUserStore();
-  const { streamData, activityDetail, isLoading, fetchActivityDetail } = useActivityStore();
+  const { streamData, activityDetail, isLoading, isFromCache, fetchActivityDetail } = useActivityStore();
   const [activity, setActivity] = useState<StravaActivity | null>(null);
   const [loadingActivity, setLoadingActivity] = useState(true);
 
@@ -404,7 +404,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         </TabsList>
         
         <TabsContent value="chart" className="mt-3">
-          <ActivityChart data={streamData} title="Heart Rate & Speed" />
+          <ActivityChart data={streamData} title="Heart Rate & Speed" isFromCache={isFromCache} />
         </TabsContent>
         
         <TabsContent value="segments" className="mt-3">

@@ -19,6 +19,7 @@ import { Heart, Gauge } from "lucide-react";
 interface ActivityChartProps {
   data: ChartDataPoint[];
   title?: string;
+  isFromCache?: boolean;
 }
 
 interface ProcessedDataPoint {
@@ -59,7 +60,7 @@ function CustomTooltip({
   );
 }
 
-export function ActivityChart({ data }: ActivityChartProps) {
+export function ActivityChart({ data, isFromCache }: ActivityChartProps) {
   const [metric, setMetric] = useState<"heartrate" | "speed">("heartrate");
 
   const { chartData, minValue, maxValue } = useMemo(() => {
@@ -159,6 +160,11 @@ export function ActivityChart({ data }: ActivityChartProps) {
            <span className="text-xs font-normal text-muted-foreground hidden sm:inline-block">
             • {chartData.length} pts
            </span>
+           {isFromCache !== undefined && (
+             <span className={`text-[10px] px-1.5 py-0.5 rounded ${isFromCache ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'}`}>
+               {isFromCache ? 'Cached' : 'Live'}
+             </span>
+           )}
         </div>
         <Select value={metric} onValueChange={(v) => setMetric(v as any)}>
           <SelectTrigger className="w-[120px] h-8 text-xs">
