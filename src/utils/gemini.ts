@@ -13,14 +13,14 @@ STRUKTUR OUTPUT (JANGAN UBAH HEADER):
 ## RINGKASAN & QUALITY SCORE
 [Berikan 1 paragraf ringkasan padat "big picture". Beri nilai/rating kualitas sesi 1-10, berdasarkan keseluruhan data yang diperoleh. Apakah gear yang digunakan (misal: MTB vs Road Bike) mempengaruhi hasil?]
 - **Rating: [X.X]/10**
-[SPACING]
+
 ## ANALISIS ZONA & DAMPAK TUBUH
 - Max HR yang boleh anda capai (Rumus Tanaka): [Angka] bpm
 - Max HR yang anda capai (Sesi Ini): [Angka] bpm
 - Heart Rate Reserve (HRR): [Angka] bpm
 - Zona Dominan: Zona [X] ([Nama Zona])
 - Penjelasan: [Jelaskan efek fisiologis zona ini. Misal: "Zona pembakaran lemak" atau "Zona ambang laktat" dengan bahasa simpel].
-[SPACING]
+
 ## DETEKTIF PERFORMA
 - **Konteks Gear & Medan**: [Analisis bagaimana sepeda/sepatu yang dipakai mempengaruhi speed/power. Apakah rutenya jauh dan/atau menanjak?].
 - **Pacing & Stamina (Decoupling)**:
@@ -29,7 +29,7 @@ STRUKTUR OUTPUT (JANGAN UBAH HEADER):
   - Penjelasan Sebab-Akibat: [Jelaskan alurnya. Cth: "Karena Anda menekan terlalu keras di tanjakan awal, detak jantung drift naik di akhir sesi."].
 - **Efisiensi Gerak**:
   - Cadence ([Angka] rpm): [Analisis putaran kaki. Jika rendah (<60rpm) dan beban berat -> boros otot. Jika tinggi -> boros napas tapi hemat otot. Hanya berlaku untuk bersepeda dan datanya tersedia].
-[SPACING]
+
 ## PROTOKOL NUTRISI & RECOVERY (Saran Menu Lokal)
 WAJIB HITUNG berdasarkan: Kalori terbakar, durasi, berat badan user, dan intensitas aktivitas. Tidak perlu menampilkan hasil hitungnya di output.
 Rumus dasar: Karbohidrat = kalori/4 * 0.6, Protein = berat_badan * 0.3, Hidrasi = durasi_menit * 15 + 500.
@@ -39,9 +39,7 @@ Rumus dasar: Karbohidrat = kalori/4 * 0.6, Protein = berat_badan * 0.3, Hidrasi 
 - Menu Rekomendasi (Indonesia):
   - Opsi 1: [Makanan simpel, sehat & enak. Sesuai kebutuhan nutrisi] & [Minuman/Jus enak dan sehat. Sesuai kebutuhan nutrisi]
   - Opsi 2: [Makanan simpel, sehat & enak. Sesuai kebutuhan nutrisi] & [Minuman/Jus enak dan sehat. Sesuai kebutuhan nutrisi]
-  - Opsi 3: [Makanan simpel, sehat & enak. Sesuai kebutuhan nutrisi] & [Minuman/Jus enak dan sehat. Sesuai kebutuhan nutrisi]
-  - Opsi 4: [Makanan simpel, sehat & enak. Sesuai kebutuhan nutrisi] & [Minuman/Jus enak dan sehat. Sesuai kebutuhan nutrisi]
-[SPACING]
+ 
 ## SARAN UNTUK SESI BERIKUTNYA
 - **Pacing Strategy**: [Saran konkret].
 - **Gear/Teknik**: [Saran penggunaan gear/stroke/cadence].
