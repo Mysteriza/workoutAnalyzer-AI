@@ -9,7 +9,7 @@ import { useUsageStore } from "@/store/usageStore";
 import { StravaActivity, ChartDataPoint } from "@/types";
 import { analyzeActivity } from "@/utils/gemini";
 import { getSavedAnalysis, saveAnalysis, deleteAnalysis } from "@/utils/storage";
-import { Brain, Loader2, AlertCircle, Sparkles, Trash2, RefreshCw, Clock, Download, Zap } from "lucide-react";
+import { Brain, Loader2, AlertCircle, Sparkles, Trash2, RefreshCw, Clock, Zap } from "lucide-react";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 interface ModelInfo {
@@ -163,18 +163,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
     setShowDeleteModal(false);
   };
 
-  const handleDownload = () => {
-    if (!analysis) return;
-    const blob = new Blob([analysis], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `analysis_${activity.name.replace(/\s+/g, "_")}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+
 
   const getRemainingQuota = () => {
     if (!modelInfo) return 0;
@@ -250,9 +239,6 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
             <div className="flex items-center gap-1.5">
               {analysis && (
                 <>
-                  <Button variant="outline" size="icon" onClick={handleDownload} title="Export" className="h-8 w-8">
-                    <Download className="h-3.5 w-3.5" />
-                  </Button>
                   <Button
                     variant="outline"
                     size="icon"
