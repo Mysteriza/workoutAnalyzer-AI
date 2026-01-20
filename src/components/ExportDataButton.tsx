@@ -25,7 +25,31 @@ export function ExportDataButton({ activityDetail, activityName }: ExportReportB
     const margin = 14;
     let yPos = 0;
 
-    const primaryColor: [number, number, number] = [139, 92, 246];
+    const justifyText = (text: string, x: number, y: number, maxWidth: number) => {
+      const words = text.trim().split(/\s+/);
+      if (words.length <= 1) {
+        doc.text(text, x, y);
+        return;
+      }
+      
+      const textWidth = doc.getTextWidth(text.trim());
+      if (textWidth >= maxWidth * 0.75) {
+        const totalSpaceWidth = maxWidth - doc.getTextWidth(words.join(""));
+        const spaceWidth = totalSpaceWidth / (words.length - 1);
+        
+        let currentX = x;
+        words.forEach((word, idx) => {
+          doc.text(word, currentX, y);
+          if (idx < words.length - 1) {
+            currentX += doc.getTextWidth(word) + spaceWidth;
+          }
+        });
+      } else {
+        doc.text(text, x, y);
+      }
+    };
+
+    const primaryColor: [number, number, number] = [252, 76, 2];
     const darkGray: [number, number, number] = [50, 50, 50];
     const lightGray: [number, number, number] = [120, 120, 120];
     const bgGray: [number, number, number] = [245, 245, 245];
@@ -189,14 +213,20 @@ export function ExportDataButton({ activityDetail, activityName }: ExportReportB
           
           const lines = doc.splitTextToSize(cleanContent, pageWidth - margin * 2);
           
-          lines.forEach((line: string) => {
+          lines.forEach((line: string, lineIdx: number) => {
             if (yPos > pageHeight - 20) {
               doc.addPage();
               yPos = 20;
             }
             
-            if (line.trim().startsWith("•") || line.trim().startsWith("-")) {
+            const trimmedLine = line.trim();
+            const isLastLine = lineIdx === lines.length - 1;
+            const isBullet = trimmedLine.startsWith("•") || trimmedLine.startsWith("-");
+            
+            if (isBullet) {
               doc.text(line, margin + 3, yPos);
+            } else if (trimmedLine.length > 0 && !isLastLine && trimmedLine.length > 50) {
+              justifyText(trimmedLine, margin, yPos, pageWidth - margin * 2);
             } else {
               doc.text(line, margin, yPos);
             }
@@ -241,30 +271,31 @@ export function ExportDataButton({ activityDetail, activityName }: ExportReportB
         startY: yPos,
         head: [["Segment Name", "Distance", "Time", "Avg HR", "Max HR", "PR"]],
         body: segmentData,
-        theme: "striped",
+        theme: "grid",
         headStyles: { 
           fillColor: primaryColor,
           fontSize: 8,
-          fontStyle: "bold"
+          fontStyle: "bold",
+          halign: "center"
         },
         bodyStyles: {
-          fontSize: 8
-        },
-        alternateRowStyles: {
-          fillColor: [250, 250, 250]
-        },
-        styles: { 
-          cellPadding: 2,
-          overflow: "linebreak"
+          fontSize: 8,
+          halign: "center"
         },
         columnStyles: {
-          0: { cellWidth: 55 },
-          1: { cellWidth: 22 },
-          2: { cellWidth: 25 },
-          3: { cellWidth: 18 },
-          4: { cellWidth: 18 },
-          5: { cellWidth: 15 }
+          0: { halign: "left", cellWidth: "auto" },
+          1: { halign: "center", cellWidth: "auto" },
+          2: { halign: "center", cellWidth: "auto" },
+          3: { halign: "center", cellWidth: "auto" },
+          4: { halign: "center", cellWidth: "auto" },
+          5: { halign: "center", cellWidth: "auto" }
         },
+        styles: { 
+          cellPadding: 3,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.1
+        },
+        tableWidth: "auto",
         margin: { left: margin, right: margin }
       });
     }
@@ -302,18 +333,23 @@ export function ExportDataButton({ activityDetail, activityName }: ExportReportB
         startY: yPos,
         head: [["Split", "Time", "Pace", "Avg HR", "Elev Δ"]],
         body: splitData,
-        theme: "striped",
+        theme: "grid",
         headStyles: { 
           fillColor: primaryColor,
           fontSize: 8,
-          fontStyle: "bold"
+          fontStyle: "bold",
+          halign: "center"
         },
         bodyStyles: {
-          fontSize: 8
+          fontSize: 8,
+          halign: "center"
         },
         styles: { 
-          cellPadding: 2
+          cellPadding: 3,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.1
         },
+        tableWidth: "auto",
         margin: { left: margin, right: margin }
       });
     }
