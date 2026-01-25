@@ -1,10 +1,15 @@
 import { create } from "zustand";
-import { StravaActivity, ChartDataPoint, StreamData, ActivityDetail } from "@/types";
-import { 
-  getCachedActivities, 
-  setCachedActivities, 
+import {
+  StravaActivity,
+  ChartDataPoint,
+  StreamData,
+  ActivityDetail,
+} from "@/types";
+import {
+  getCachedActivities,
+  setCachedActivities,
   hasCachedActivities,
-  mergeActivities 
+  mergeActivities,
 } from "@/utils/storage";
 import { stravaFetch } from "@/utils/stravaFetch";
 
@@ -17,9 +22,12 @@ interface ActivityState {
   isFromCache: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   fetchActivities: (accessToken: string) => Promise<void>;
-  fetchActivityDetail: (activityId: number, accessToken: string) => Promise<void>;
+  fetchActivityDetail: (
+    activityId: number,
+    accessToken: string,
+  ) => Promise<void>;
   fetchStreams: (activityId: number, accessToken: string) => Promise<void>;
   setSelectedActivity: (activity: StravaActivity | null) => void;
   clearError: () => void;
@@ -51,7 +59,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     }
 
     set({ isLoading: true, error: null });
-    
+
     try {
       const response = await stravaFetch("/api/strava/activities?per_page=50", {
         headers: {
@@ -65,23 +73,27 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       }
 
       const fetchedActivities: StravaActivity[] = await response.json();
-      
+
       if (!Array.isArray(fetchedActivities)) {
         throw new Error("Invalid response from Strava API");
       }
-      
+
       const cachedActivities = getCachedActivities();
-      const mergedActivities = mergeActivities(cachedActivities, fetchedActivities);
-      
+      const mergedActivities = mergeActivities(
+        cachedActivities,
+        fetchedActivities,
+      );
+
       setCachedActivities(mergedActivities);
-      set({ 
-        activities: mergedActivities, 
+      set({
+        activities: mergedActivities,
         isLoading: false,
       });
     } catch (err) {
       const cached = getCachedActivities();
       set({
-        error: err instanceof Error ? err.message : "Failed to fetch activities",
+        error:
+          err instanceof Error ? err.message : "Failed to fetch activities",
         isLoading: false,
         activities: cached.length > 0 ? cached : get().activities,
       });
@@ -93,7 +105,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       set({ error: "Invalid activity ID" });
       return;
     }
-    
+
     if (!accessToken || typeof accessToken !== "string") {
       set({ error: "Invalid access token" });
       return;
@@ -101,18 +113,33 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
 
     const cached = get().streamCache.get(activityId);
     if (cached) {
-      set({ 
-        streamData: cached.data, 
+      set({
+        streamData: cached.data,
         activityDetail: cached.detail,
         isFromCache: true,
         isLoading: false,
-        error: null
+        error: null,
+      });
+      return;
+    }
+
+    const { getActivityDetailCache, saveActivityDetailCache } =
+      await import("@/utils/storage");
+    const storedCache = getActivityDetailCache(activityId);
+    if (storedCache) {
+      get().streamCache.set(activityId, storedCache);
+      set({
+        streamData: storedCache.data,
+        activityDetail: storedCache.detail,
+        isFromCache: true,
+        isLoading: false,
+        error: null,
       });
       return;
     }
 
     set({ isLoading: true, error: null, isFromCache: false });
-    
+
     try {
       const response = await stravaFetch(`/api/strava/streams/${activityId}`, {
         headers: {
@@ -126,15 +153,15 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       }
 
       const data: ActivityDetail = await response.json();
-      
+
       if (!data || !data.activity) {
         throw new Error("Invalid response from Strava API");
       }
-      
+
       const streams: StreamData = data.streams || { time: [], distance: [] };
       const chartData: ChartDataPoint[] = [];
       const timeData = streams.time || [];
-      
+
       for (let i = 0; i < timeData.length; i++) {
         chartData.push({
           time: timeData[i],
@@ -147,17 +174,22 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
         });
       }
 
-      get().streamCache.set(activityId, { data: chartData, detail: data });
+      const cacheObject = { data: chartData, detail: data };
+      get().streamCache.set(activityId, cacheObject);
+      saveActivityDetailCache(activityId, cacheObject);
 
-      set({ 
+      set({
         activityDetail: data,
-        streamData: chartData, 
+        streamData: chartData,
         isFromCache: false,
-        isLoading: false 
+        isLoading: false,
       });
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Failed to fetch activity details",
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to fetch activity details",
         isLoading: false,
         streamData: [],
       });

@@ -1,7 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 
 export const authConfig = {
-  providers: [], // Providers are configured in auth.ts
+  providers: [],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
@@ -14,14 +14,13 @@ export const authConfig = {
 
       if (isOnLoginPage) {
         if (isLoggedIn) return Response.redirect(new URL("/settings", nextUrl));
-        return true; // Allow access to login page
+        return true;
       }
 
       if (isPublicPage) {
-        return true; // Allow access to public pages
+        return true;
       }
 
-      // Block access to everything else if not logged in
       return isLoggedIn;
     },
   },

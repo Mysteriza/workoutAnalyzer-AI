@@ -23,16 +23,12 @@ export async function GET() {
   }
 }
 
-// POST is removed for security (managed by /api/analyze)
-
 export async function PUT(req: Request) {
   try {
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    // TODO: Add admin check here if roles exist
 
     const { count } = await req.json();
 

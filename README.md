@@ -5,22 +5,23 @@
 Aplikasi web untuk menganalisis data latihan dari Strava dengan AI-powered insights menggunakan Google Gemini AI.
 
 ## Screenshots
+
 <img width="1900" height="923" alt="image" src="https://github.com/user-attachments/assets/674150e1-debd-40b7-b477-a4a89a131181" />
 <img width="1920" height="2792" alt="screencapture-workout-analyzer-ai-vercel-app-activity-17076535827-2026-01-19-13_12_09" src="https://github.com/user-attachments/assets/e5609886-93cb-4f88-af45-11413baf7c5e" />
-
 
 ## Features
 
 - **Strava Integration** - OAuth authentication untuk mengambil aktivitas
 - **AI Analysis** - Analisis fisiologis dengan Gemini 3 Flash
-- **Rate Limits** - 20 requests/day (reset midnight Pacific ~3 PM WIB)
+- **Rate Limits** - 20 requests/day (Global Shared Quota, resets midnight Pacific)
 - **Interactive Charts** - Visualisasi HR, Speed, Power dengan Recharts
 - **Segment Analysis** - PR ranks dan achievements
 - **Splits Table** - Analisis per-km dengan pace comparison
 - **Gear-Aware** - AI mempertimbangkan jenis peralatan
-- **Export Data** - Export aktivitas (JSON) dan analisis (Markdown)
+- **PDF Report** - Export laporan detail professional (Stats, Charts, AI Analysis)
 - **User Profile** - Input data fisiologis (usia, berat, tinggi, RHR)
 - **Cloud Sync** - Analisis dan settings tersimpan di MongoDB
+- **Security** - Enterprise-grade protection (HSTS, Middleware, Anti-Tamper RPD)
 - **Dark Mode** - UI modern dengan dark mode default
 
 ## Tech Stack
@@ -33,7 +34,8 @@ Aplikasi web untuk menganalisis data latihan dari Strava dengan AI-powered insig
 | AI        | Google Gemini 3 Flash    |
 | State     | Zustand                  |
 | Database  | MongoDB Atlas            |
-| Auth      | NextAuth.js v5           |
+| Auth      | NextAuth.js v5 (Beta)    |
+| PDF       | jsPDF + AutoTable        |
 
 ## Installation
 

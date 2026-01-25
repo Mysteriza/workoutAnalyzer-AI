@@ -26,10 +26,8 @@ export async function POST(req: Request) {
 
     await dbConnect();
 
-    // @ts-ignore
     let userId = session.user.id;
     if (!userId) {
-      // @ts-ignore
       const stravaId = session.user.stravaId;
       if (stravaId) {
         const user = await User.findOne({ stravaId });
@@ -72,7 +70,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // CHECK QUOTA
     const { getOrCreateGlobalUsage, incrementGlobalUsage } =
       await import("@/lib/usage");
     const usage = await getOrCreateGlobalUsage();
@@ -98,7 +95,6 @@ export async function POST(req: Request) {
       { upsert: true, new: true },
     );
 
-    // INCREMENT QUOTA
     await incrementGlobalUsage();
 
     return NextResponse.json({

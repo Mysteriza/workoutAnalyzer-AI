@@ -26,8 +26,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       try {
         const stravaId = account.providerAccountId;
-        
-        // Find or create user
+
         const existingUser = await User.findOne({ stravaId } as any);
 
         const userData = {
@@ -64,23 +63,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (token && session.user) {
-        // Fetch user from DB to get the internal ID and profile data
         await dbConnect();
         const dbUser = await User.findOne({ stravaId: token.stravaId } as any);
-        
+
         if (dbUser) {
-           // @ts-ignore
-           session.user.id = dbUser._id.toString();
-           // @ts-ignore
-           session.user.stravaId = dbUser.stravaId;
-           // @ts-ignore
-           session.user.accessToken = dbUser.accessToken;
-           // @ts-ignore
-           session.user.refreshToken = dbUser.refreshToken;
-           // @ts-ignore
-           session.user.expiresAt = dbUser.expiresAt;
-           // @ts-ignore
-           session.user.profile = dbUser.profile;
+          session.user.id = dbUser._id.toString();
+          session.user.stravaId = dbUser.stravaId!;
+          session.user.accessToken = dbUser.accessToken!;
+          session.user.refreshToken = dbUser.refreshToken!;
+          session.user.expiresAt = dbUser.expiresAt!;
+          session.user.profile = dbUser.profile;
         }
       }
       return session;
