@@ -12,58 +12,48 @@ interface UsageState {
 
 function getPacificDateKey(): string {
   const now = new Date();
-  const pacificTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+  const pacificTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }),
+  );
   return pacificTime.toISOString().split("T")[0];
 }
 
-export const useUsageStore = create<UsageState>()(
-  (set, get) => ({
-    count: 0,
-    lastReset: getPacificDateKey(),
-    isLoaded: false,
+export const useUsageStore = create<UsageState>()((set, get) => ({
+  count: 0,
+  lastReset: getPacificDateKey(),
+  isLoaded: false,
 
-    getUsage: () => {
-      const state = get();
-      const todayPacific = getPacificDateKey();
-      
-      if (state.lastReset !== todayPacific) {
-        return 0;
-      }
-      return state.count;
-    },
+  getUsage: () => {
+    const state = get();
+    const todayPacific = getPacificDateKey();
 
-    setUsage: (count: number) => {
-      set({ count, lastReset: getPacificDateKey() });
-    },
+    if (state.lastReset !== todayPacific) {
+      return 0;
+    }
+    return state.count;
+  },
 
-    incrementUsage: async () => {
-      try {
-        const response = await fetch("/api/usage", { method: "POST" });
-        if (response.ok) {
-          const data = await response.json();
-          set({ count: data.count, lastReset: data.lastReset });
-        }
-      } catch {
-        const todayPacific = getPacificDateKey();
-        set((state) => ({
-          count: state.lastReset === todayPacific ? state.count + 1 : 1,
-          lastReset: todayPacific,
-        }));
-      }
-    },
+  setUsage: (count: number) => {
+    set({ count, lastReset: getPacificDateKey() });
+  },
 
-    loadFromCloud: async () => {
-      try {
-        const response = await fetch("/api/usage");
-        if (response.ok) {
-          const data = await response.json();
-          set({ count: data.count, lastReset: data.lastReset, isLoaded: true });
-        } else {
-          set({ isLoaded: true });
-        }
-      } catch {
+  incrementUsage: async () => {
+    // Just sync from server, logic is now server-side in /api/analyze
+    const stored = get();
+    await stored.loadFromCloud();
+  },
+
+  loadFromCloud: async () => {
+    try {
+      const response = await fetch("/api/usage");
+      if (response.ok) {
+        const data = await response.json();
+        set({ count: data.count, lastReset: data.lastReset, isLoaded: true });
+      } else {
         set({ isLoaded: true });
       }
-    },
-  })
-);
+    } catch {
+      set({ isLoaded: true });
+    }
+  },
+}));
