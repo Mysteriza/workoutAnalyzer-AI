@@ -21,19 +21,15 @@ export async function getOrCreateGlobalUsage() {
 
   // Atomically find or create, resetting if date changed
   const usage = await GlobalUsage.findOneAndUpdate(
-    { lastReset: { $ne: todayPacific } }, // Match documents with old date
-    {
-      $set: { usageCount: 0, lastReset: todayPacific },
-    },
+    { lastReset: { $ne: todayPacific } },
+    { $set: { usageCount: 0, lastReset: todayPacific } },
     { upsert: false, new: false }
   );
 
   if (usage) {
-    // Found an existing document with old date — it's been reset, fetch the updated version
     return await GlobalUsage.findOne({});
   }
 
-  // Either no document exists or the date is already today
   let currentUsage = await GlobalUsage.findOne({});
 
   if (!currentUsage) {
@@ -49,7 +45,6 @@ export async function getOrCreateGlobalUsage() {
 /**
  * Atomically increment the global usage counter.
  * Returns the updated usage document, or null if quota exceeded.
- * Uses MongoDB aggregation pipeline with $cond for atomic check-and-increment.
  */
 export async function incrementGlobalUsage() {
   await dbConnect();
@@ -96,7 +91,6 @@ export async function incrementGlobalUsage() {
 
 /**
  * Check if the daily quota has been exceeded.
- * Returns true if the user should be blocked from making more requests.
  */
 export async function isQuotaExceeded(): Promise<boolean> {
   const usage = await getOrCreateGlobalUsage();

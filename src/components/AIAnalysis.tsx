@@ -61,12 +61,31 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
 
   useEffect(() => {
     const loadAnalysis = async () => {
+      // 1. Try MongoDB first (cloud storage)
+      try {
+        const response = await fetch(
+          `/api/analyze?activityId=${activity.id}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data.found && data.content) {
+            setAnalysis(data.content);
+            setAnalyzedAt(new Date(data.updatedAt).toISOString());
+            // Sync to localStorage for offline fallback
+            saveAnalysis(activity.id, data.content);
+            return;
+          }
+        }
+      } catch {
+        // MongoDB fetch failed — fall through to localStorage
+      }
+
+      // 2. Fallback to localStorage
       const saved = getSavedAnalysis(activity.id);
       if (saved && saved.content && saved.content.trim().length > 0) {
         setAnalysis(saved.content);
         setAnalyzedAt(saved.analyzedAt);
       }
-      // Only fetch from API if we don't have a local saved analysis
     };
     loadAnalysis();
   }, [activity.id]);

@@ -18,12 +18,7 @@ export async function PUT(req: Request) {
 
     const stravaId = session.user.stravaId;
 
-    // Mark as configured if meaningful values are provided
-    const isConfigured =
-      (age !== undefined && age !== 25) ||
-      (weight !== undefined && weight !== 70) ||
-      (restingHeartRate !== undefined && restingHeartRate !== 60);
-
+    // Explicit save always marks as configured
     const user = await User.findOneAndUpdate(
       { stravaId },
       {
@@ -33,13 +28,23 @@ export async function PUT(req: Request) {
           "profile.height": height,
           "profile.restingHeartRate": restingHeartRate,
           "profile.preferredActivity": preferredActivity,
-          "profile.isConfigured": isConfigured,
+          "profile.isConfigured": true,
         },
       },
       { new: true }
     );
 
-    return NextResponse.json({ success: true, user });
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      profile: user.profile,
+    });
   } catch (error) {
     console.error("Profile update error:", error);
     return NextResponse.json(

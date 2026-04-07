@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Save, CheckCircle } from "lucide-react";
 
 export function UserSettings() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const { setProfile, userProfile, isConnected, disconnectStrava } = useUserStore();
 
   const [formData, setFormData] = useState({
@@ -45,6 +45,7 @@ export function UserSettings() {
       height: parseInt(formData.height) || 170,
       restingHeartRate: parseInt(formData.restingHeartRate) || 60,
       preferredActivity: userProfile?.preferredActivity || "Ride",
+      isConfigured: true, // Explicitly mark as configured on save
     };
 
     try {
@@ -54,15 +55,41 @@ export function UserSettings() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(newProfile),
         });
-        if (!res.ok) throw new Error("Failed to save to cloud");
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Server error: ${res.status}`);
+        }
       }
 
-      setProfile(newProfile);
+      // Save to localStorage via store
+      setProfile({
+        age: newProfile.age,
+        weight: newProfile.weight,
+        height: newProfile.height,
+        restingHeartRate: newProfile.restingHeartRate,
+        preferredActivity: newProfile.preferredActivity,
+        isConfigured: newProfile.isConfigured,
+      });
+
+      // Refresh session so JWT gets updated with new profile
+      if (session) {
+        await update({
+          profile: {
+            age: newProfile.age,
+            weight: newProfile.weight,
+            height: newProfile.height,
+            restingHeartRate: newProfile.restingHeartRate,
+            preferredActivity: newProfile.preferredActivity,
+            isConfigured: newProfile.isConfigured,
+          },
+        });
+      }
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error(error);
+      console.error("Failed to save profile:", error);
+      alert(error instanceof Error ? error.message : "Failed to save profile");
     } finally {
       setLoading(false);
     }

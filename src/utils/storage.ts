@@ -259,4 +259,7 @@ export function clearAllData(): void {
   localStorage.removeItem(CACHED_ACTIVITIES_KEY);
   localStorage.removeItem(ACTIVITIES_LAST_FETCH_KEY);
   localStorage.removeItem(ACTIVITY_DETAILS_CACHE_KEY);
+  // Also clear legacy token keys
+  localStorage.removeItem("strava_access_token");
+  localStorage.removeItem("strava_refresh_token");
 }

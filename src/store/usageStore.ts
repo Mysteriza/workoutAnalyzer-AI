@@ -41,7 +41,11 @@ export const useUsageStore = create<UsageState>()((set, get) => ({
       const response = await fetch("/api/usage");
       if (response.ok) {
         const data = await response.json();
-        set({ count: data.count, lastReset: data.lastReset, isLoaded: true });
+        set({
+          count: data.count,
+          lastReset: data.lastReset,
+          isLoaded: true,
+        });
       } else {
         set({ isLoaded: true });
       }

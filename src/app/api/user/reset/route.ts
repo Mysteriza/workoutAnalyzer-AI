@@ -44,13 +44,14 @@ export async function DELETE() {
     }
 
     // Invalidate the session after deletion
-    // Use a redirect to force sign-out
     await signOut({ redirect: false });
 
+    // Signal client to clear localStorage and redirect
     return NextResponse.json({
       success: true,
       message: "All user data has been deleted. Please sign in again.",
       requireReauth: true,
+      clearLocalStorage: true,
     });
   } catch (error) {
     console.error("Reset Data Error:", error);

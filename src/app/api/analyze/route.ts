@@ -7,6 +7,55 @@ import { MODEL_ID } from "@/app/api/model/route";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+/**
+ * GET — Check if analysis already exists in MongoDB for this activity.
+ * Returns cached analysis or 404 if not found.
+ */
+export async function GET(req: Request) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const activityId = searchParams.get("activityId");
+
+    if (!activityId || !Number.isInteger(Number(activityId)) || Number(activityId) <= 0) {
+      return NextResponse.json(
+        { error: "Valid activityId is required" },
+        { status: 400 }
+      );
+    }
+
+    await dbConnect();
+
+    const analysis = await Analysis.findOne({
+      userId: session.user.id,
+      activityId: Number(activityId),
+    });
+
+    if (!analysis || !analysis.content?.trim()) {
+      return NextResponse.json({ found: false }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      found: true,
+      content: analysis.content,
+      updatedAt: analysis.updatedAt,
+    });
+  } catch (error) {
+    console.error("[Analyze GET] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch analysis" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST — Generate new AI analysis and save to MongoDB.
+ */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -73,7 +122,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // Check quota using atomic increment
+    // Check quota using global atomic increment (shared API key)
     const { getOrCreateGlobalUsage, isQuotaExceeded, DAILY_QUOTA } =
       await import("@/lib/usage");
 
@@ -103,7 +152,7 @@ export async function POST(req: Request) {
       { upsert: true, new: true }
     );
 
-    // Increment quota atomically
+    // Increment global quota atomically
     await (await import("@/lib/usage")).incrementGlobalUsage();
 
     return NextResponse.json({
