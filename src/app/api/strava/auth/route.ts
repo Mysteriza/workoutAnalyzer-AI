@@ -1,26 +1,16 @@
 import { NextResponse } from "next/server";
 
-const STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize";
-
+/**
+ * Redirect to NextAuth's Strava provider for authentication.
+ * This consolidates OAuth through NextAuth instead of a custom flow,
+ * ensuring proper session creation and token storage in JWT.
+ */
 export async function GET() {
-  const clientId = process.env.STRAVA_CLIENT_ID;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const callbackUrl = `${baseUrl}/settings`;
 
-  if (!clientId) {
-    return NextResponse.json(
-      { error: "Strava Client ID not configured" },
-      { status: 500 }
-    );
-  }
-
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: `${baseUrl}/api/strava/callback`,
-    response_type: "code",
-    scope: "read,activity:read_all",
-  });
-
-  const authUrl = `${STRAVA_AUTH_URL}?${params.toString()}`;
-  
-  return NextResponse.redirect(authUrl);
+  // Redirect to NextAuth's built-in Strava sign-in
+  return NextResponse.redirect(
+    `${baseUrl}/api/auth/signin/strava?callbackUrl=${encodeURIComponent(callbackUrl)}`
+  );
 }

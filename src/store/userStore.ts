@@ -10,18 +10,19 @@ import {
 } from "@/utils/storage";
 
 interface UserState {
-  userProfile: UserProfile; // Changed from nullable to always having defaults
+  userProfile: UserProfile;
   tokens: StravaTokens | null;
   isConnected: boolean;
   isLoading: boolean;
-  
+
   initializeFromStorage: () => void;
-  setProfile: (profile: UserProfile) => void;
+  setProfile: (profile: Partial<UserProfile>) => void;
   setTokens: (tokens: StravaTokens) => void;
   refreshTokens: () => Promise<boolean>;
   disconnectStrava: () => void;
   connectStrava: () => void;
   getValidAccessToken: () => Promise<string | null>;
+  isProfileConfigured: () => boolean;
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -29,6 +30,7 @@ const DEFAULT_PROFILE: UserProfile = {
   weight: 70,
   height: 170,
   restingHeartRate: 60,
+  isConfigured: false,
 };
 
 export const useUserStore = create<UserState>((set, get) => ({
@@ -48,9 +50,20 @@ export const useUserStore = create<UserState>((set, get) => ({
     });
   },
 
-  setProfile: (profile: UserProfile) => {
-    saveUserProfile(profile);
-    set({ userProfile: profile });
+  setProfile: (profile: Partial<UserProfile>) => {
+    const currentProfile = get().userProfile;
+    const updatedProfile = { ...currentProfile, ...profile };
+
+    // Mark as configured if meaningful values are set
+    updatedProfile.isConfigured =
+      (profile.age !== undefined && profile.age !== DEFAULT_PROFILE.age) ||
+      (profile.weight !== undefined && profile.weight !== DEFAULT_PROFILE.weight) ||
+      (profile.restingHeartRate !== undefined &&
+        profile.restingHeartRate !== DEFAULT_PROFILE.restingHeartRate) ||
+      currentProfile.isConfigured;
+
+    saveUserProfile(updatedProfile);
+    set({ userProfile: updatedProfile });
   },
 
   setTokens: (tokens: StravaTokens) => {
@@ -107,5 +120,9 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
 
     return tokens.accessToken;
+  },
+
+  isProfileConfigured: () => {
+    return get().userProfile.isConfigured;
   },
 }));

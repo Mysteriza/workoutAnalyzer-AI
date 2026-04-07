@@ -29,7 +29,7 @@
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 6%;
+    --card: 240 10% 5%;
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 8%;
     --popover-foreground: 0 0% 98%;
@@ -39,12 +39,12 @@
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
+    --accent: 240 3.7% 18%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
+    --border: 240 3.7% 18%;
+    --input: 240 3.7% 18%;
     --ring: 262 83% 58%;
   }
 }
@@ -70,4 +70,75 @@
   .gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400;
   }
+
+  .animate-in {
+    animation-duration: 200ms;
+    animation-fill-mode: forwards;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .fade-in {
+    animation-name: fade-in;
+  }
+
+  .slide-up {
+    animation-name: slide-up;
+  }
+
+  .zoom-in-95 {
+    animation-name: zoom-in-95;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes zoom-in-95 {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .skeleton {
+    @apply bg-muted animate-pulse rounded-md;
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--muted)) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
 }
+

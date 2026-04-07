@@ -11,7 +11,14 @@ declare module "next-auth" {
       accessToken: string;
       refreshToken: string;
       expiresAt: number;
-      profile?: any;
+      profile?: {
+        age?: number;
+        weight?: number;
+        height?: number;
+        restingHeartRate?: number;
+        preferredActivity?: string;
+        isConfigured?: boolean;
+      };
     } & DefaultSession["user"];
   }
 
@@ -20,12 +27,31 @@ declare module "next-auth" {
     accessToken?: string;
     refreshToken?: string;
     expiresAt?: number;
+    profile?: {
+      age?: number;
+      weight?: number;
+      height?: number;
+      restingHeartRate?: number;
+      preferredActivity?: string;
+      isConfigured?: boolean;
+    };
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
+    userId?: string;
     stravaId?: string;
     accessToken?: string;
+    refreshToken?: string;
+    expiresAt?: number;
+    profile?: {
+      age?: number;
+      weight?: number;
+      height?: number;
+      restingHeartRate?: number;
+      preferredActivity?: string;
+      isConfigured?: boolean;
+    };
   }
 }

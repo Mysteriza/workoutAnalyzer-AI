@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import dbConnect from "@/lib/db";
+import User from "@/models/User";
 
 const STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token";
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const clientId = process.env.STRAVA_CLIENT_ID;
   const clientSecret = process.env.STRAVA_CLIENT_SECRET;
 
@@ -21,6 +30,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Missing refresh token" },
         { status: 400 }
+      );
+    }
+
+    // Verify the refresh token belongs to the authenticated user
+    const dbUser = await User.findOne({
+      stravaId: session.user.stravaId,
+      refreshToken: refresh_token,
+    });
+
+    if (!dbUser) {
+      return NextResponse.json(
+        { error: "Invalid refresh token" },
+        { status: 403 }
       );
     }
 
@@ -44,6 +66,14 @@ export async function POST(request: NextRequest) {
     }
 
     const tokenData = await response.json();
+
+    // Update tokens in database
+    await User.findByIdAndUpdate(dbUser._id, {
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      expiresAt: tokenData.expires_at,
+    });
+
     return NextResponse.json({
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,

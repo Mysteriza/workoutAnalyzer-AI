@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const ActivitySchema = new mongoose.Schema(
@@ -18,11 +17,11 @@ const ActivitySchema = new mongoose.Schema(
       required: true,
     },
     data: {
-      type: Object, // Stores the full JSON activity detail
+      type: mongoose.Schema.Types.Mixed,
       required: true,
     },
     streams: {
-      type: Object, // Stores the streams JSON
+      type: mongoose.Schema.Types.Mixed,
       required: false,
     },
     lastFetchedAt: {
@@ -36,4 +35,5 @@ const ActivitySchema = new mongoose.Schema(
 // Add compound index for userId + stravaId
 ActivitySchema.index({ userId: 1, stravaId: 1 });
 
-export default mongoose.models.Activity || mongoose.model("Activity", ActivitySchema);
+export default mongoose.models.Activity ||
+  mongoose.model("Activity", ActivitySchema);

@@ -4,6 +4,7 @@ export interface UserProfile {
   height: number;
   restingHeartRate: number;
   preferredActivity?: string;
+  isConfigured: boolean;
 }
 
 export interface StravaTokens {

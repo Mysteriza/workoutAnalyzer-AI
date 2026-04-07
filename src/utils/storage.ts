@@ -17,7 +17,16 @@ export function getUserProfile(): UserProfile | null {
   const stored = localStorage.getItem(USER_PROFILE_KEY);
   if (!stored) return null;
   try {
-    return JSON.parse(stored) as UserProfile;
+    const profile = JSON.parse(stored) as Partial<UserProfile>;
+    // Backward compatibility: default isConfigured to false if not present
+    return {
+      age: profile.age ?? 25,
+      weight: profile.weight ?? 70,
+      height: profile.height ?? 170,
+      restingHeartRate: profile.restingHeartRate ?? 60,
+      preferredActivity: profile.preferredActivity,
+      isConfigured: profile.isConfigured ?? false,
+    } as UserProfile;
   } catch {
     return null;
   }

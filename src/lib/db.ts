@@ -8,19 +8,16 @@ interface MongooseCache {
 }
 
 declare global {
-  var mongoose: MongooseCache;
+  // eslint-disable-next-line no-var
+  var mongooseCache: MongooseCache | undefined;
 }
 
-// @ts-ignore
-let cached = global.mongoose;
-
-if (!cached) {
-  // @ts-ignore
-  cached = global.mongoose = { conn: null, promise: null };
-}
+// Properly typed global cache without @ts-ignore
+const cached: MongooseCache =
+  globalThis.mongooseCache ?? (globalThis.mongooseCache = { conn: null, promise: null });
 
 async function dbConnect() {
-   if (!MONGODB_URI) {
+  if (!MONGODB_URI) {
     throw new Error(
       "Please define the MONGODB_URI environment variable inside .env.local"
     );

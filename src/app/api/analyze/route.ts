@@ -3,14 +3,14 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Analysis from "@/models/Analysis";
-import User from "@/models/User";
 import { MODEL_ID } from "@/app/api/model/route";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function POST(req: Request) {
   try {
-    const { prompt, activityId, forceRefresh } = await req.json();
+    const body = await req.json();
+    const { prompt, activityId, forceRefresh } = body;
     const session = await auth();
 
     if (!session || !session.user) {
@@ -18,47 +18,50 @@ export async function POST(req: Request) {
     }
 
     if (!prompt) {
+      return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+    }
+
+    // Validate activityId — must be a positive integer
+    if (
+      activityId === undefined ||
+      activityId === null ||
+      !Number.isInteger(activityId) ||
+      activityId <= 0
+    ) {
       return NextResponse.json(
-        { error: "Prompt is required" },
-        { status: 400 },
+        { error: "Invalid activityId. Must be a positive integer." },
+        { status: 400 }
+      );
+    }
+
+    // userId is always available from JWT (set during sign-in)
+    const userId = session.user.id;
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User session invalid. Please sign in again." },
+        { status: 401 }
       );
     }
 
     await dbConnect();
 
-    let userId = session.user.id;
-    if (!userId) {
-      const stravaId = session.user.stravaId;
-      if (stravaId) {
-        const user = await User.findOne({ stravaId });
-        if (user) userId = user._id.toString();
-      }
-    }
-
-    if (!userId) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
+    // Check for existing analysis with atomic cooldown check
     const existingAnalysis = await Analysis.findOne({ userId, activityId });
 
-    if (
-      existingAnalysis &&
-      existingAnalysis.content &&
-      existingAnalysis.content.trim().length > 0
-    ) {
+    if (existingAnalysis && existingAnalysis.content?.trim().length > 0) {
       if (forceRefresh) {
         const lastUpdate = new Date(existingAnalysis.updatedAt).getTime();
         const now = Date.now();
-        const diff = (now - lastUpdate) / 1000;
+        const diffSeconds = (now - lastUpdate) / 1000;
 
-        if (diff < 60) {
+        if (diffSeconds < 5) {
           return NextResponse.json(
             {
               error: "Cooldown active",
-              retryAfter: Math.ceil(60 - diff),
+              retryAfter: Math.ceil(5 - diffSeconds),
               content: existingAnalysis.content,
             },
-            { status: 429 },
+            { status: 429 }
           );
         }
       } else {
@@ -70,32 +73,38 @@ export async function POST(req: Request) {
       }
     }
 
-    const { getOrCreateGlobalUsage, incrementGlobalUsage } =
+    // Check quota using atomic increment
+    const { getOrCreateGlobalUsage, isQuotaExceeded, DAILY_QUOTA } =
       await import("@/lib/usage");
-    const usage = await getOrCreateGlobalUsage();
-    if (usage.usageCount >= 20) {
+
+    await getOrCreateGlobalUsage();
+    if (await isQuotaExceeded()) {
       return NextResponse.json(
         {
-          error:
-            "Daily analysis quota exceeded (20/20). Please try again tomorrow.",
+          error: `Daily analysis quota exceeded (${DAILY_QUOTA}/${DAILY_QUOTA}). Please try again tomorrow.`,
           code: "QUOTA_EXCEEDED",
         },
-        { status: 429 },
+        { status: 429 }
       );
     }
 
+    // Generate AI analysis
+    console.log(`[Analyze] Using model: ${MODEL_ID} for activity: ${activityId}`);
     const model = genAI.getGenerativeModel({ model: MODEL_ID });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
+    console.log(`[Analyze] Successfully generated analysis for activity: ${activityId}`);
 
+    // Save analysis
     await Analysis.findOneAndUpdate(
       { userId, activityId },
       { content: text },
-      { upsert: true, new: true },
+      { upsert: true, new: true }
     );
 
-    await incrementGlobalUsage();
+    // Increment quota atomically
+    await (await import("@/lib/usage")).incrementGlobalUsage();
 
     return NextResponse.json({
       content: text,
@@ -103,6 +112,8 @@ export async function POST(req: Request) {
       updatedAt: new Date(),
     });
   } catch (error: unknown) {
+    console.error("[Analyze] Error details:", error);
+
     let errorMessage = "Failed to generate analysis";
     let errorCode = "UNKNOWN_ERROR";
 
@@ -116,18 +127,20 @@ export async function POST(req: Request) {
       ) {
         errorCode = "RATE_LIMIT";
         const retryMatch = message.match(/retry in (\d+)/i);
-        const retrySeconds = retryMatch ? retryMatch[1] : "60";
+        const retrySeconds = retryMatch ? retryMatch[1] : "5";
         errorMessage = `API rate limit exceeded. Please wait ${retrySeconds} seconds before trying again.`;
       } else if (message.includes("404") || message.includes("not found")) {
         errorCode = "MODEL_NOT_FOUND";
-        errorMessage = "AI model not available. Please contact support.";
+        errorMessage = `Model '${MODEL_ID}' not available. Please contact support.`;
       } else if (
         message.includes("401") ||
         message.includes("403") ||
-        message.includes("API key")
+        message.includes("API key") ||
+        message.includes("api_key") ||
+        message.includes("invalid")
       ) {
         errorCode = "AUTH_ERROR";
-        errorMessage = "API authentication failed. Please check configuration.";
+        errorMessage = "API authentication failed. Check your GEMINI_API_KEY.";
       } else if (message.includes("500") || message.includes("503")) {
         errorCode = "SERVER_ERROR";
         errorMessage =
@@ -138,9 +151,11 @@ export async function POST(req: Request) {
       }
     }
 
+    console.error(`[Analyze] Returning error: ${errorCode} - ${errorMessage}`);
+
     return NextResponse.json(
       { error: errorMessage, code: errorCode },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

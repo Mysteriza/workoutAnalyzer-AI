@@ -14,10 +14,15 @@ export async function PUT(req: Request) {
 
   try {
     const data = await req.json();
-    const { age, weight, height, restingHeartRate } = data;
+    const { age, weight, height, restingHeartRate, preferredActivity } = data;
 
-    // @ts-ignore
     const stravaId = session.user.stravaId;
+
+    // Mark as configured if meaningful values are provided
+    const isConfigured =
+      (age !== undefined && age !== 25) ||
+      (weight !== undefined && weight !== 70) ||
+      (restingHeartRate !== undefined && restingHeartRate !== 60);
 
     const user = await User.findOneAndUpdate(
       { stravaId },
@@ -27,6 +32,8 @@ export async function PUT(req: Request) {
           "profile.weight": weight,
           "profile.height": height,
           "profile.restingHeartRate": restingHeartRate,
+          "profile.preferredActivity": preferredActivity,
+          "profile.isConfigured": isConfigured,
         },
       },
       { new: true }
@@ -34,8 +41,9 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ success: true, user });
   } catch (error) {
+    console.error("Profile update error:", error);
     return NextResponse.json(
-      { error: "Failed to update profile", details: error },
+      { error: "Failed to update profile" },
       { status: 500 }
     );
   }

@@ -19,8 +19,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const authHeader = request.headers.get("Authorization");
 
+  // 1. Authenticate first — ensures session is valid before any work
+  const session = await auth();
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const authHeader = request.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return NextResponse.json(
       { error: "Missing or invalid authorization header" },
@@ -31,13 +37,11 @@ export async function GET(
   const accessToken = authHeader.replace("Bearer ", "");
 
   try {
-    // 1. Check Cache in DB First
     await dbConnect();
+
+    // 2. Check Cache in DB First
     const existingActivity = await Activity.findOne({ stravaId: id });
 
-    // Caching Strategy: Return cached if exists.
-    // User requested "not fetch API again" when revisiting.
-    // We assume activity details (streams) don't change often.
     if (existingActivity) {
       console.log(`Serving activity ${id} from DB cache.`);
       return NextResponse.json({
@@ -46,7 +50,7 @@ export async function GET(
       });
     }
 
-    // 2. Fetch from Strava API (Cache Miss)
+    // 3. Cache Miss — Fetch from Strava API
     console.log(`Fetching activity ${id} from Strava API...`);
     const [activityResponse, streamsResponse] = await Promise.all([
       fetch(`${STRAVA_API_BASE}/activities/${id}?include_all_efforts=true`, {
@@ -67,16 +71,17 @@ export async function GET(
     }
 
     const activityDetail = await activityResponse.json();
-    
+
     // Process Streams
     const streams: Record<string, number[]> = {
       time: [],
       distance: [],
     };
-    
+
     if (streamsResponse.ok) {
-      const rawStreams: Record<string, StravaStreamItem> = await streamsResponse.json();
-      
+      const rawStreams: Record<string, StravaStreamItem> =
+        await streamsResponse.json();
+
       for (const [key, value] of Object.entries(rawStreams)) {
         if (value && Array.isArray(value.data)) {
           streams[key] = value.data;
@@ -84,16 +89,16 @@ export async function GET(
       }
     }
 
-    // 3. Save to DB for Caching
-    // We need userId to associate.
-    // We can get it from Session OR look up User by stravaId (which is usually in activityDetail.athlete.id)
-    const session = await auth();
-    let userId = session?.user?.id;
+    // 4. Save to DB for Caching
+    // userId is always available from JWT
+    let userId = session.user.id;
 
+    // Fallback: look up by Strava athlete ID if userId somehow missing
     if (!userId && activityDetail.athlete?.id) {
-       // Look up internal user ID by Strava ID
-       const user = await User.findOne({ stravaId: activityDetail.athlete.id.toString() });
-       if (user) userId = user._id.toString();
+      const user = await User.findOne({
+        stravaId: activityDetail.athlete.id.toString(),
+      });
+      if (user) userId = user._id.toString();
     }
 
     if (userId) {
@@ -102,7 +107,7 @@ export async function GET(
         stravaId: id,
         name: activityDetail.name,
         data: activityDetail,
-        streams: streams,
+        streams,
         lastFetchedAt: new Date(),
       });
       console.log(`Activity ${id} cached to DB.`);

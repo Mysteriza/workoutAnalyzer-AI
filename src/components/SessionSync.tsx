@@ -10,8 +10,8 @@ export function SessionSync() {
 
   useEffect(() => {
     if (session?.user && !tokens) {
-      // @ts-ignore
-      const { accessToken, refreshToken, expiresAt, stravaId, profile } = session.user;
+      const { accessToken, refreshToken, expiresAt, stravaId, profile } =
+        session.user;
 
       if (accessToken && refreshToken && expiresAt) {
         console.log("Syncing Cloud Session to Local Storage...");
@@ -24,8 +24,14 @@ export function SessionSync() {
       }
 
       if (profile) {
-        // @ts-ignore
-        setProfile(profile);
+        setProfile({
+          age: profile.age,
+          weight: profile.weight,
+          height: profile.height,
+          restingHeartRate: profile.restingHeartRate,
+          preferredActivity: profile.preferredActivity,
+          isConfigured: profile.isConfigured ?? false,
+        });
       }
     }
   }, [session, tokens, setTokens, setProfile]);

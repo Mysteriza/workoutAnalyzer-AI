@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 import dbConnect from "@/lib/db";
+import mongoose from "mongoose";
 import User from "@/models/User";
 import Activity from "@/models/Activity";
 import Analysis from "@/models/Analysis";
@@ -15,27 +16,42 @@ export async function DELETE() {
 
     await dbConnect();
 
-    // @ts-ignore
-    let userId = session.user.id;
+    // userId is always available from JWT
+    const userId = session.user.id;
 
     if (!userId) {
-      // @ts-ignore
-      const stravaId = session.user.stravaId;
-      if (stravaId) {
-        const user = await User.findOne({ stravaId });
-        if (user) userId = user._id.toString();
-      }
+      return NextResponse.json(
+        { error: "User session invalid" },
+        { status: 401 }
+      );
     }
 
-    if (!userId) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    // Use MongoDB transaction for atomic deletion
+    const dbSession = await mongoose.startSession();
+    dbSession.startTransaction();
+
+    try {
+      await Activity.deleteMany({ userId }, { session: dbSession });
+      await Analysis.deleteMany({ userId }, { session: dbSession });
+      await User.findByIdAndDelete(userId, { session: dbSession });
+
+      await dbSession.commitTransaction();
+    } catch (error) {
+      await dbSession.abortTransaction();
+      throw error;
+    } finally {
+      dbSession.endSession();
     }
 
-    await Activity.deleteMany({ userId });
-    await Analysis.deleteMany({ userId });
-    await User.findByIdAndDelete(userId);
+    // Invalidate the session after deletion
+    // Use a redirect to force sign-out
+    await signOut({ redirect: false });
 
-    return NextResponse.json({ success: true, message: "All user data has been deleted" });
+    return NextResponse.json({
+      success: true,
+      message: "All user data has been deleted. Please sign in again.",
+      requireReauth: true,
+    });
   } catch (error) {
     console.error("Reset Data Error:", error);
     return NextResponse.json(

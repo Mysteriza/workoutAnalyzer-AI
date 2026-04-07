@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getPacificDateKey } from "@/utils/date";
 
 interface UsageState {
   count: number;
@@ -8,14 +9,6 @@ interface UsageState {
   setUsage: (count: number) => void;
   incrementUsage: () => Promise<void>;
   loadFromCloud: () => Promise<void>;
-}
-
-function getPacificDateKey(): string {
-  const now = new Date();
-  const pacificTime = new Date(
-    now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }),
-  );
-  return pacificTime.toISOString().split("T")[0];
 }
 
 export const useUsageStore = create<UsageState>()((set, get) => ({

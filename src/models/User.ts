@@ -13,9 +13,9 @@ export interface IUser extends Document {
     weight?: number;
     height?: number;
     restingHeartRate?: number;
+    preferredActivity?: string;
+    isConfigured?: boolean;
   };
-  usageCount?: number;
-  usageLastReset?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,14 +35,14 @@ const UserSchema: Schema<IUser> = new Schema(
       height: { type: Number },
       restingHeartRate: { type: Number },
       preferredActivity: { type: String },
+      isConfigured: { type: Boolean, default: false },
     },
-    usageCount: { type: Number, default: 0 },
-    usageLastReset: { type: String },
   },
   { timestamps: true }
 );
 
 // Prevent model recompilation error in Next.js hot reload
-const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+const User: Model<IUser> =
+  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 
 export default User;
