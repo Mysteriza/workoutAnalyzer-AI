@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { refresh_token } = body;
 
+    await dbConnect();
+
     if (!refresh_token) {
       return NextResponse.json(
         { error: "Missing refresh token" },

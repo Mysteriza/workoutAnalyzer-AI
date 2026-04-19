@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useUserStore } from "@/store/userStore";
-import { ActivityList } from "@/components/ActivityList";
+import dynamic from "next/dynamic";
+const ActivityList = dynamic(() => import("@/components/ActivityList").then(mod => mod.ActivityList), { ssr: false, loading: () => <div className="animate-pulse flex flex-col gap-4"><div className="h-32 bg-muted/50 rounded-xl"/><div className="h-32 bg-muted/50 rounded-xl"/></div> });
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Settings, Zap, Activity, TrendingUp, Brain } from "lucide-react";

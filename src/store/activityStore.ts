@@ -112,7 +112,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     }
 
     const cached = get().streamCache.get(activityId);
-    if (cached) {
+    if (cached && cached.detail && cached.detail.activity && cached.detail.activity.id) {
       set({
         streamData: cached.data,
         activityDetail: cached.detail,
@@ -126,7 +126,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     const { getActivityDetailCache, saveActivityDetailCache } =
       await import("@/utils/storage");
     const storedCache = getActivityDetailCache(activityId);
-    if (storedCache) {
+    if (storedCache && storedCache.detail && storedCache.detail.activity && storedCache.detail.activity.id) {
       get().streamCache.set(activityId, storedCache);
       set({
         streamData: storedCache.data,

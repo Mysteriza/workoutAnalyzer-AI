@@ -42,7 +42,9 @@ export async function GET(
     // 2. Check Cache in DB First
     const existingActivity = await Activity.findOne({ stravaId: id });
 
-    if (existingActivity) {
+    // Ensure we have the full activity detail, not just a summary. 
+    // The full activity data has an 'id' field at the root.
+    if (existingActivity && existingActivity.data && existingActivity.data.id) {
       console.log(`Serving activity ${id} from DB cache.`);
       return NextResponse.json({
         activity: existingActivity.data,
@@ -102,14 +104,19 @@ export async function GET(
     }
 
     if (userId) {
-      await Activity.create({
-        userId,
-        stravaId: id,
-        name: activityDetail.name,
-        data: activityDetail,
-        streams,
-        lastFetchedAt: new Date(),
-      });
+      await Activity.findOneAndUpdate(
+        { stravaId: id },
+        {
+          $set: {
+            userId,
+            name: activityDetail.name,
+            data: activityDetail,
+            streams,
+            lastFetchedAt: new Date(),
+          }
+        },
+        { upsert: true }
+      );
       console.log(`Activity ${id} cached to DB.`);
     }
 
