@@ -174,7 +174,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
       </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4">
-        <Card className="glass">
+        <Card className="surface">
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded bg-blue-500/20 flex-shrink-0">
@@ -188,7 +188,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
           </CardContent>
         </Card>
 
-        <Card className="glass">
+        <Card className="surface">
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded bg-green-500/20 flex-shrink-0">
@@ -202,7 +202,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
           </CardContent>
         </Card>
 
-        <Card className="glass">
+        <Card className="surface">
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded bg-yellow-500/20 flex-shrink-0">
@@ -216,7 +216,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
           </CardContent>
         </Card>
 
-        <Card className="glass">
+        <Card className="surface">
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded bg-cyan-500/20 flex-shrink-0">
@@ -233,7 +233,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4">
         {activity.has_heartrate && activity.average_heartrate && (
-          <Card className="glass">
+          <Card className="surface">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded bg-red-500/20 flex-shrink-0">
@@ -249,7 +249,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         )}
 
         {activity.has_heartrate && activity.max_heartrate && (
-          <Card className="glass">
+          <Card className="surface">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded bg-red-600/20 flex-shrink-0">
@@ -265,7 +265,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         )}
 
         {activity.average_watts && (
-          <Card className="glass">
+          <Card className="surface">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded bg-yellow-500/20 flex-shrink-0">
@@ -281,7 +281,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         )}
 
         {activity.average_cadence && (
-          <Card className="glass">
+          <Card className="surface">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded bg-indigo-500/20 flex-shrink-0">
@@ -299,7 +299,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         )}
 
         {activity.calories && (
-          <Card className="glass">
+          <Card className="surface">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded bg-rose-500/20 flex-shrink-0">
@@ -315,7 +315,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         )}
 
         {activity.kilojoules && (
-          <Card className="glass">
+          <Card className="surface">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded bg-amber-500/20 flex-shrink-0">
@@ -331,7 +331,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         )}
 
         {(activity.elev_high || activity.elev_low) && (
-          <Card className="glass">
+          <Card className="surface">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded bg-emerald-500/20 flex-shrink-0">
@@ -349,7 +349,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         )}
 
         {activity.max_speed && (
-          <Card className="glass">
+          <Card className="surface">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded bg-cyan-600/20 flex-shrink-0">
@@ -365,7 +365,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         )}
 
         {(activity.type === "Run" || activity.sport_type === "Run") && (
-          <Card className="glass">
+          <Card className="surface">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded bg-purple-500/20 flex-shrink-0">
@@ -381,7 +381,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
         )}
 
         {activity.kudos_count > 0 && (
-          <Card className="glass">
+          <Card className="surface">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded bg-orange-500/20 flex-shrink-0">
@@ -412,7 +412,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
           {activityDetail?.activity.segment_efforts && activityDetail.activity.segment_efforts.length > 0 ? (
             <SegmentList segments={activityDetail.activity.segment_efforts} />
           ) : (
-            <Card className="glass">
+            <Card className="surface">
               <CardContent className="flex items-center justify-center py-8">
                 <p className="text-muted-foreground text-sm">No segments in this activity</p>
               </CardContent>
@@ -424,7 +424,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
           {activityDetail?.activity.splits_metric && activityDetail.activity.splits_metric.length > 0 ? (
             <SplitsTable splits={activityDetail.activity.splits_metric} type="metric" />
           ) : (
-            <Card className="glass">
+            <Card className="surface">
               <CardContent className="flex items-center justify-center py-8">
                 <p className="text-muted-foreground text-sm">No splits in this activity</p>
               </CardContent>

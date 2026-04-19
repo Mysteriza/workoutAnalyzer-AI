@@ -138,12 +138,51 @@ export async function POST(req: Request) {
     }
 
     // Generate AI analysis
-    console.log(`[Analyze] Using model: ${MODEL_ID} for activity: ${activityId}`);
-    const model = genAI.getGenerativeModel({ model: MODEL_ID });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    console.log(`[Analyze] Successfully generated analysis for activity: ${activityId}`);
+    let text = "";
+    let usedModel = MODEL_ID;
+
+    try {
+      console.log(`[Analyze] Using primary model (Gemini): ${MODEL_ID} for activity: ${activityId}`);
+      const model = genAI.getGenerativeModel({ model: MODEL_ID });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      text = response.text();
+      console.log(`[Analyze] Successfully generated analysis via Gemini for activity: ${activityId}`);
+    } catch (geminiError: any) {
+      console.error("[Analyze] Gemini API failed:", geminiError.message || geminiError);
+      
+      const groqApiKey = process.env.GROQ_API_KEY;
+      if (!groqApiKey || groqApiKey === "your_groq_api_key_here") {
+        console.error("[Analyze] GROQ_API_KEY is not configured. Cannot fallback.");
+        throw geminiError; // Rethrow original error if fallback is not configured
+      }
+      
+      console.log(`[Analyze] Falling back to Groq API...`);
+      usedModel = "llama-3.3-70b-versatile"; // High-quality fast fallback model
+      
+      const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${groqApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: usedModel,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7,
+        }),
+      });
+      
+      if (!groqResponse.ok) {
+        const errorData = await groqResponse.json().catch(() => ({}));
+        console.error("[Analyze] Groq API fallback also failed:", errorData);
+        throw new Error(`Fallback to Groq failed: ${errorData.error?.message || groqResponse.statusText}. Original Gemini error: ${geminiError.message}`);
+      }
+      
+      const groqData = await groqResponse.json();
+      text = groqData.choices[0].message.content;
+      console.log(`[Analyze] Successfully generated analysis via Groq (${usedModel}) for activity: ${activityId}`);
+    }
 
     // Save analysis
     await Analysis.findOneAndUpdate(
@@ -159,6 +198,8 @@ export async function POST(req: Request) {
       content: text,
       isCached: false,
       updatedAt: new Date(),
+      model: usedModel,
+      provider: usedModel.includes("llama") ? "Groq" : "Gemini",
     });
   } catch (error: unknown) {
     console.error("[Analyze] Error details:", error);

@@ -12,17 +12,18 @@ Aplikasi web untuk menganalisis data latihan dari Strava dengan AI-powered insig
 ## Features
 
 - **Strava Integration** - OAuth authentication untuk mengambil aktivitas
-- **AI Analysis** - Analisis fisiologis dengan Gemini 3 Flash
+- **AI Analysis** - Analisis fisiologis dengan Gemini 3 Flash / Groq Llama 3
+- **AI Fallback System** - Otomatis beralih ke Groq (Llama-3.3-70b-versatile) saat Gemini down atau limit
 - **Rate Limits** - 20 requests/day (Global Shared Quota, resets midnight Pacific)
 - **Interactive Charts** - Visualisasi HR, Speed, Power dengan Recharts
 - **Segment Analysis** - PR ranks dan achievements
 - **Splits Table** - Analisis per-km dengan pace comparison
 - **Gear-Aware** - AI mempertimbangkan jenis peralatan
+- **Professional UI** - Desain Industrial & Technical Dark Mode yang presisi tinggi
 - **PDF Report** - Export laporan detail professional (Stats, Charts, AI Analysis)
 - **User Profile** - Input data fisiologis (usia, berat, tinggi, RHR)
 - **Cloud Sync** - Analisis dan settings tersimpan di MongoDB
 - **Security** - Enterprise-grade protection (HSTS, Middleware, Anti-Tamper RPD)
-- **Dark Mode** - UI modern dengan dark mode default
 
 ## Tech Stack
 
@@ -31,7 +32,8 @@ Aplikasi web untuk menganalisis data latihan dari Strava dengan AI-powered insig
 | Framework | Next.js 15 + TypeScript  |
 | Styling   | Tailwind CSS + Shadcn UI |
 | Charts    | Recharts                 |
-| AI        | Google Gemini 3 Flash    |
+| Primary AI| Google Gemini 3 Flash    |
+| Fallback AI| Groq (Llama-3.3-70b)     |
 | State     | Zustand                  |
 | Database  | MongoDB Atlas            |
 | Auth      | NextAuth.js v5 (Beta)    |
@@ -47,12 +49,13 @@ npm install
 
 ## Environment Variables
 
-Buat file `.env.local`:
+Copy `file .env.example` menjadi `.env` lalu isi nilainya:
 
 ```env
 STRAVA_CLIENT_ID=<dari Strava API Settings>
 STRAVA_CLIENT_SECRET=<dari Strava API Settings>
 GEMINI_API_KEY=<dari Google AI Studio>
+GROQ_API_KEY=<dari Groq Cloud>
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 MONGODB_URI=<dari MongoDB Atlas>
 AUTH_SECRET=<openssl rand -base64 32>

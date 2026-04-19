@@ -26,53 +26,53 @@ export default function HomePage() {
 
   if (!isConnected || !userProfile) {
     return (
-      <div className="container mx-auto px-4 py-8 sm:py-12">
-        <div className="max-w-3xl mx-auto text-center space-y-6 sm:space-y-8">
-          <div className="space-y-4">
-            <div className="inline-flex items-center justify-center p-3 sm:p-4 rounded-2xl gradient-primary shadow-lg shadow-primary/25">
-              <Zap className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+      <div className="container mx-auto px-4 py-8 sm:py-16 animate-in-fade">
+        <div className="max-w-3xl mx-auto text-center space-y-10 sm:space-y-12">
+          <div className="space-y-6">
+            <div className="inline-flex items-center justify-center p-4 sm:p-5 rounded-2xl bg-primary shadow-lg shadow-primary/20">
+              <Zap className="h-10 w-10 sm:h-12 sm:w-12 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
-              <span className="gradient-text">CardioKernel</span>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight">
+              <span className="text-foreground">CardioKernel</span>
             </h1>
-            <p className="text-base sm:text-xl text-muted-foreground max-w-xl mx-auto px-4">
+            <p className="text-base sm:text-xl text-muted-foreground max-w-xl mx-auto px-4 font-medium leading-relaxed">
               Analyze your Strava workouts with AI-powered physiological insights.
               Get heart rate zone analysis and personalized recommendations.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-2xl mx-auto">
-            <Card className="glass text-center p-4 sm:p-6">
-              <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400 mx-auto mb-2 sm:mb-3" />
-              <h3 className="font-semibold mb-1 text-sm sm:text-base">Strava Integration</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Connect your Strava account to import activities
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+            <Card className="surface p-6 sm:p-8 flex flex-col items-center text-center">
+              <Activity className="h-8 w-8 text-primary mx-auto mb-4" />
+              <h3 className="font-semibold mb-2 text-base">Strava Integration</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Connect your Strava account to automatically sync your activities.
               </p>
             </Card>
-            <Card className="glass text-center p-4 sm:p-6">
-              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-400 mx-auto mb-2 sm:mb-3" />
-              <h3 className="font-semibold mb-1 text-sm sm:text-base">Interactive Charts</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Visualize heart rate and speed data
+            <Card className="surface p-6 sm:p-8 flex flex-col items-center text-center">
+              <TrendingUp className="h-8 w-8 text-primary mx-auto mb-4" />
+              <h3 className="font-semibold mb-2 text-base">Interactive Charts</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Visualize precise heart rate, pace, and power data dynamically.
               </p>
             </Card>
-            <Card className="glass text-center p-4 sm:p-6">
-              <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2 sm:mb-3" />
-              <h3 className="font-semibold mb-1 text-sm sm:text-base">AI Analysis</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Physiological insights from Google Gemini
+            <Card className="surface p-6 sm:p-8 flex flex-col items-center text-center">
+              <Brain className="h-8 w-8 text-primary mx-auto mb-4" />
+              <h3 className="font-semibold mb-2 text-base">AI Analysis</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Receive physiological insights powered by advanced AI models.
               </p>
             </Card>
           </div>
 
-          <div className="space-y-4 px-4">
-            <p className="text-muted-foreground text-sm sm:text-base">
+          <div className="space-y-6 px-4 pt-4">
+            <p className="text-muted-foreground font-medium">
               {!userProfile
                 ? "Complete your profile first to get started"
                 : "Connect your Strava account to view your activities"}
             </p>
             <Link href="/settings">
-              <Button size="lg" className="gradient-primary text-white w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold shadow-md transition-transform hover:scale-[1.02] active:scale-95">
                 <Settings className="h-5 w-5 mr-2" />
                 Open Settings
               </Button>

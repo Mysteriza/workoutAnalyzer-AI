@@ -17,7 +17,7 @@ export function SegmentList({ segments }: SegmentListProps) {
   if (!segments || segments.length === 0) return null;
 
   return (
-    <Card className="glass">
+    <Card className="surface animate-in-slide">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           <Flag className="h-5 w-5 text-orange-400" />

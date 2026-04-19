@@ -33,7 +33,7 @@ export function LoginScreen() {
   }
 
   return (
-    <Card className="max-w-md mx-auto mt-8 glass">
+    <Card className="max-w-md mx-auto mt-8 surface animate-in-fade">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Welcome</CardTitle>
         <CardDescription>

@@ -49,6 +49,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [showReAnalyzeModal, setShowReAnalyzeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [aiProvider, setAiProvider] = useState<string>("Gemini");
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
 
   useEffect(() => {
@@ -142,11 +143,14 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
         forceRefresh: isReAnalyze,
       });
 
-      if (result && result.trim().length > 0) {
-        setAnalysis(result);
+      if (result && result.content && result.content.trim().length > 0) {
+        setAnalysis(result.content);
+        if (result.provider) {
+          setAiProvider(result.provider);
+        }
         const now = new Date().toISOString();
         setAnalyzedAt(now);
-        saveAnalysis(activity.id, result);
+        saveAnalysis(activity.id, result.content);
         incrementUsage();
         startCooldown();
       } else {
@@ -234,12 +238,10 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                 AI Performance Coach
               </CardTitle>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
-                {modelInfo && (
-                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50">
-                    <Zap className="h-3 w-3" />
-                    {modelInfo.name}
-                  </span>
-                )}
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50 font-medium text-foreground">
+                  <Zap className="h-3 w-3 text-yellow-500" />
+                  Powered by {aiProvider}
+                </span>
                 {modelInfo && (
                   <span
                     className={`px-1.5 py-0.5 rounded font-medium ${
@@ -315,7 +317,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
-                Analyzing with {modelInfo?.name || "AI"}...
+                Analyzing with {aiProvider}...
               </p>
             </div>
           ) : error ? (
@@ -339,7 +341,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
               </Button>
             </div>
           ) : analysis ? (
-            <article className="prose prose-sm prose-invert max-w-none [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:pt-3 [&_h2]:border-t [&_h2]:border-border [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:font-semibold [&_p]:my-3 [&_p]:text-justify [&_p]:leading-relaxed [&_ul]:my-3 [&_li]:my-1 [&_li]:text-justify [&_table]:my-3 [&_td]:text-justify [&_strong]:font-bold [&_strong]:text-foreground [&_code]:text-sm [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-md">
+            <article className="prose prose-sm prose-invert max-w-none [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:pt-3 [&_h2]:border-t [&_h2]:border-border [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:font-semibold [&_p]:my-3 [&_p]:text-justify [&_p]:leading-relaxed [&_ul]:my-3 [&_li]:my-1 [&_li]:text-justify [&_table]:my-3 [&_table]:block [&_table]:overflow-x-auto [&_table]:whitespace-nowrap [&_table]:w-full [&_td]:text-justify [&_strong]:font-bold [&_strong]:text-foreground [&_code]:text-sm [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-md">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeSanitize]}
@@ -435,9 +437,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
               <>
                 <h2 className="text-lg font-bold mb-2">Re-analyze with AI?</h2>
                 <p className="text-sm text-muted-foreground mb-4">
-                  This will regenerate the analysis using{" "}
-                  {modelInfo?.name || "AI"}. The previous analysis will be
-                  replaced.
+                  This will regenerate the analysis. The previous analysis will be replaced.
                 </p>
                 <div className="flex gap-2 justify-end">
                   <Button

@@ -57,7 +57,7 @@ export default function Error({
 
   return (
     <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[60vh]">
-      <Card className="max-w-md w-full glass">
+      <Card className="max-w-md w-full surface animate-in-fade">
         <CardContent className="pt-6 text-center space-y-4">
           <div className="inline-flex items-center justify-center p-3 rounded-full bg-orange-500/10">
             <AlertTriangle className="h-8 w-8 text-orange-500" />

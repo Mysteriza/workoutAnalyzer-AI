@@ -4,48 +4,64 @@
 
 @layer base {
   :root {
+    /* Refined Light Theme - Professional, high-contrast, data-centric */
     --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --foreground: 0 0% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 0 0% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --popover-foreground: 0 0% 9%;
+    
+    /* Strava Orange as Accent */
+    --primary: 15 98% 50%; /* #FC4C02 */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 262 83% 58%;
-    --radius: 0.75rem;
+    
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 15 98% 50%;
+    
+    --radius: 0.5rem; /* Sharper, more technical border radius */
+
+    /* Advanced Easing Curves for precise motion */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 5%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 8%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 18%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    /* Premium Technical Dark Mode - Carbon/Graphite */
+    --background: 0 0% 4%; /* Near black */
+    --foreground: 0 0% 96%;
+    --card: 0 0% 6.5%; /* Subtle elevation */
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 6.5%;
+    --popover-foreground: 0 0% 96%;
+    
+    --primary: 15 98% 50%; /* Strava Orange */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 96%;
+    
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 18%;
-    --input: 240 3.7% 18%;
-    --ring: 262 83% 58%;
+    
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
+    --ring: 15 98% 50%;
   }
 }
 
@@ -54,54 +70,38 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary-foreground;
   }
 }
 
 @layer utilities {
-  .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  /* Replace glassmorphism with technical/solid surfaces */
+  .surface {
+    @apply bg-card border border-border/50 shadow-sm transition-colors;
+  }
+  
+  .surface-hover {
+    @apply hover:border-border hover:bg-accent/50;
   }
 
-  .gradient-primary {
-    @apply bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600;
+  /* Precise motion utilities */
+  .animate-in-fade {
+    animation: fade-in 400ms var(--ease-out-quint) forwards;
   }
 
-  .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400;
-  }
-
-  .animate-in {
-    animation-duration: 200ms;
-    animation-fill-mode: forwards;
-    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .fade-in {
-    animation-name: fade-in;
-  }
-
-  .slide-up {
-    animation-name: slide-up;
-  }
-
-  .zoom-in-95 {
-    animation-name: zoom-in-95;
+  .animate-in-slide {
+    animation: slide-up 500ms var(--ease-out-expo) forwards;
   }
 
   @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   @keyframes slide-up {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(12px);
     }
     to {
       opacity: 1;
@@ -109,36 +109,13 @@
     }
   }
 
-  @keyframes zoom-in-95 {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
-
   .skeleton {
-    @apply bg-muted animate-pulse rounded-md;
-    background-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      hsl(var(--muted)) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s ease-in-out infinite;
+    @apply bg-muted/80 animate-pulse rounded-md;
+  }
+  
+  /* Text utilities for robust data display */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
 

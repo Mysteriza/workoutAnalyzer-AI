@@ -123,7 +123,7 @@ export function ActivityChart({ data, isFromCache }: ActivityChartProps) {
 
   if (!hasData) {
     return (
-      <Card className="glass">
+      <Card className="surface animate-in-fade">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <Icon className="h-4 w-4" style={{ color }} />
@@ -150,7 +150,7 @@ export function ActivityChart({ data, isFromCache }: ActivityChartProps) {
   }
 
   return (
-    <Card className="glass">
+    <Card className="surface animate-in-fade">
       <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">
            <CardTitle className="text-base flex items-center gap-2">

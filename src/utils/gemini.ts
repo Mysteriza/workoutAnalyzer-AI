@@ -227,7 +227,7 @@ CATATAN TAMBAHAN:
 `;
 }
 
-export async function analyzeActivity(request: AnalysisRequest): Promise<string> {
+export async function analyzeActivity(request: AnalysisRequest): Promise<{ content: string; provider?: string; model?: string }> {
   const prompt = buildAnalysisPrompt(
     request.activity,
     request.streamSample,
@@ -263,7 +263,7 @@ export async function analyzeActivity(request: AnalysisRequest): Promise<string>
     );
   }
 
-  const parsedData = data as { error?: string; retryAfter?: number; content?: string; code?: string };
+  const parsedData = data as { error?: string; retryAfter?: number; content?: string; code?: string; provider?: string; model?: string };
 
   if (response.status === 429) {
     const error = new Error(
@@ -278,7 +278,11 @@ export async function analyzeActivity(request: AnalysisRequest): Promise<string>
     throw new Error(parsedData.error || "Failed to analyze activity");
   }
 
-  return parsedData.content || "";
+  return {
+    content: parsedData.content || "",
+    provider: parsedData.provider,
+    model: parsedData.model,
+  };
 }
 
 export { SYSTEM_PROMPT };

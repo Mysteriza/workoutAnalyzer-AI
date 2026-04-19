@@ -39,13 +39,25 @@ export async function GET(
   try {
     await dbConnect();
 
+    let userId = session.user.id;
+    // Fallback: look up userId if not in session but stravaId is
+    if (!userId && session.user.stravaId) {
+      const user = await User.findOne({ stravaId: session.user.stravaId });
+      if (user) userId = user._id.toString();
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: "User profile not found in DB" }, { status: 401 });
+    }
+
     // 2. Check Cache in DB First
-    const existingActivity = await Activity.findOne({ stravaId: id });
+    // SECURITY: Ensure we only return activities belonging to the current user
+    const existingActivity = await Activity.findOne({ stravaId: id, userId });
 
     // Ensure we have the full activity detail, not just a summary. 
     // The full activity data has an 'id' field at the root.
     if (existingActivity && existingActivity.data && existingActivity.data.id) {
-      console.log(`Serving activity ${id} from DB cache.`);
+      console.log(`Serving activity ${id} from DB cache for user ${userId}.`);
       return NextResponse.json({
         activity: existingActivity.data,
         streams: existingActivity.streams || {},
@@ -92,33 +104,19 @@ export async function GET(
     }
 
     // 4. Save to DB for Caching
-    // userId is always available from JWT
-    let userId = session.user.id;
-
-    // Fallback: look up by Strava athlete ID if userId somehow missing
-    if (!userId && activityDetail.athlete?.id) {
-      const user = await User.findOne({
-        stravaId: activityDetail.athlete.id.toString(),
-      });
-      if (user) userId = user._id.toString();
-    }
-
-    if (userId) {
-      await Activity.findOneAndUpdate(
-        { stravaId: id },
-        {
-          $set: {
-            userId,
-            name: activityDetail.name,
-            data: activityDetail,
-            streams,
-            lastFetchedAt: new Date(),
-          }
-        },
-        { upsert: true }
-      );
-      console.log(`Activity ${id} cached to DB.`);
-    }
+    await Activity.findOneAndUpdate(
+      { stravaId: id, userId },
+      {
+        $set: {
+          name: activityDetail.name,
+          data: activityDetail,
+          streams,
+          lastFetchedAt: new Date(),
+        }
+      },
+      { upsert: true }
+    );
+    console.log(`Activity ${id} cached to DB.`);
 
     return NextResponse.json({
       activity: activityDetail,

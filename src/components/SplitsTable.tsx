@@ -20,7 +20,7 @@ export function SplitsTable({ splits, type = "metric" }: SplitsTableProps) {
   const unit = type === "metric" ? "km" : "mi";
 
   return (
-    <Card className="glass">
+    <Card className="surface animate-in-slide" style={{ animationDelay: '100ms' }}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           <LayoutGrid className="h-5 w-5 text-blue-400" />

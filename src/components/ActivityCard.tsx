@@ -18,7 +18,7 @@ export function ActivityCard({ activity }: ActivityCardProps) {
 
   return (
     <Link href={`/activity/${activity.id}`}>
-      <Card className="glass hover:bg-white/10 hover:border-primary/50 transition-all duration-200 cursor-pointer group p-3">
+      <Card className="surface hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer group p-4 sm:p-5">
         <div className="flex items-center gap-3">
           <div className="text-2xl flex-shrink-0">{getActivityIcon(activity.type)}</div>
           
@@ -37,7 +37,7 @@ export function ActivityCard({ activity }: ActivityCardProps) {
             <p className="text-xs text-muted-foreground">{shortDate}</p>
           </div>
 
-          <div className="hidden sm:flex items-center gap-4 text-xs">
+          <div className="hidden sm:flex items-center gap-4 text-xs tabular-nums">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <MapPin className="h-3 w-3 text-blue-400" />
               <span className="font-medium text-foreground">{formatDistance(activity.distance)}</span>
@@ -58,7 +58,7 @@ export function ActivityCard({ activity }: ActivityCardProps) {
             )}
           </div>
 
-          <div className="flex sm:hidden items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="flex sm:hidden items-center gap-2 text-[11px] text-muted-foreground tabular-nums">
             <span className="font-medium text-foreground">{formatDistance(activity.distance)}</span>
             <span>•</span>
             <span className="font-medium text-foreground">{formatDuration(activity.moving_time)}</span>
