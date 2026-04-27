@@ -290,3 +290,40 @@ export async function POST(req: Request) {
     );
   }
 }
+
+/**
+ * DELETE — Delete analysis from MongoDB.
+ */
+export async function DELETE(req: Request) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const activityId = searchParams.get("activityId");
+
+    if (!activityId || !Number.isInteger(Number(activityId)) || Number(activityId) <= 0) {
+      return NextResponse.json(
+        { error: "Valid activityId is required" },
+        { status: 400 }
+      );
+    }
+
+    await dbConnect();
+
+    await Analysis.deleteOne({
+      userId: session.user.id,
+      activityId: Number(activityId),
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[Analyze DELETE] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete analysis" },
+      { status: 500 }
+    );
+  }
+}

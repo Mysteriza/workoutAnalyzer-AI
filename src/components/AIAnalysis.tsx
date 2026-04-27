@@ -168,11 +168,22 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
     }
   };
 
-  const handleDelete = () => {
-    deleteAnalysis(activity.id);
-    setAnalysis(null);
-    setAnalyzedAt(null);
-    setShowDeleteModal(false);
+  const handleDelete = async () => {
+    try {
+      setIsLoading(true);
+      await fetch(`/api/analyze?activityId=${activity.id}`, {
+        method: 'DELETE',
+      });
+      deleteAnalysis(activity.id);
+      setAnalysis(null);
+      setAnalyzedAt(null);
+      setAiProvider("Gemini"); // Reset provider locally
+      setShowDeleteModal(false);
+    } catch (err) {
+      console.error("Failed to delete analysis:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formattedTime = analyzedAt
