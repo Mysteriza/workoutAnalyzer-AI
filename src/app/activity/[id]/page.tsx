@@ -40,6 +40,8 @@ import {
   Bike,
   FileText,
   ExternalLink,
+  Footprints,
+  Activity as ActivityIcon,
 } from "lucide-react";
 
 interface ActivityDetailPageProps {
@@ -358,6 +360,42 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Max Speed</p>
                   <p className="text-sm font-bold truncate">{formatSpeed(activity.max_speed)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activity.average_cadence && (
+          <Card className="surface">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-indigo-500/20 flex-shrink-0">
+                  <ActivityIcon className="h-4 w-4 text-indigo-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Cadence</p>
+                  <p className="text-sm font-bold truncate">
+                    {Math.round(activity.average_cadence * (activity.type === "Run" || activity.type === "Walk" ? 2 : 1))} {activity.type === "Run" || activity.type === "Walk" ? "spm" : "rpm"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activity.total_steps && (
+          <Card className="surface">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded bg-teal-500/20 flex-shrink-0">
+                  <Footprints className="h-4 w-4 text-teal-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Steps</p>
+                  <p className="text-sm font-bold truncate">
+                    {activity.total_steps}
+                  </p>
                 </div>
               </div>
             </CardContent>

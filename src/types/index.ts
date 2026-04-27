@@ -115,6 +115,7 @@ export interface StravaActivity {
   elev_low?: number;
   perceived_exertion?: number;
   workout_type?: number;
+  total_steps?: number;
   gear?: StravaGear;
   gear_id?: string;
   map?: StravaMap;
@@ -156,7 +157,7 @@ export interface ChartDataPoint {
 }
 
 export interface AnalysisRequest {
-  activity: StravaActivity;
+  activity: ActivityDetail["activity"];
   streamSample: ChartDataPoint[];
   userProfile: UserProfile;
   forceRefresh?: boolean;
@@ -164,6 +165,7 @@ export interface AnalysisRequest {
 
 export interface APIAnalysisPayload {
   prompt: string;
+  systemInstruction?: string;
   activityId: number;
   forceRefresh?: boolean;
 }
@@ -177,4 +179,6 @@ export interface SavedAnalysis {
   activityId: number;
   content: string;
   analyzedAt: string;
+  provider?: string;
+  aiModel?: string;
 }

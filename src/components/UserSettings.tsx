@@ -173,6 +173,9 @@ export function UserSettings() {
               <Input
                 id="age"
                 type="number"
+                min="10"
+                max="120"
+                placeholder="e.g. 25"
                 value={formData.age}
                 onChange={(e) => setFormData({ ...formData, age: e.target.value })}
               />
@@ -182,6 +185,9 @@ export function UserSettings() {
               <Input
                 id="weight"
                 type="number"
+                min="30"
+                max="250"
+                placeholder="e.g. 70"
                 value={formData.weight}
                 onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
               />
@@ -191,6 +197,9 @@ export function UserSettings() {
               <Input
                 id="height"
                 type="number"
+                min="100"
+                max="250"
+                placeholder="e.g. 170"
                 value={formData.height}
                 onChange={(e) => setFormData({ ...formData, height: e.target.value })}
               />
@@ -200,6 +209,9 @@ export function UserSettings() {
               <Input
                 id="rhr"
                 type="number"
+                min="30"
+                max="120"
+                placeholder="e.g. 60"
                 value={formData.restingHeartRate}
                 onChange={(e) => setFormData({ ...formData, restingHeartRate: e.target.value })}
               />

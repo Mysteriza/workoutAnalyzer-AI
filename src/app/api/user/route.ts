@@ -14,7 +14,24 @@ export async function PUT(req: Request) {
 
   try {
     const data = await req.json();
-    const { age, weight, height, restingHeartRate, preferredActivity } = data;
+    let { age, weight, height, restingHeartRate, preferredActivity } = data;
+
+    age = Number(age);
+    weight = Number(weight);
+    height = Number(height);
+    restingHeartRate = Number(restingHeartRate);
+
+    if (
+      isNaN(age) || age < 10 || age > 120 ||
+      isNaN(weight) || weight < 30 || weight > 250 ||
+      isNaN(height) || height < 100 || height > 250 ||
+      isNaN(restingHeartRate) || restingHeartRate < 30 || restingHeartRate > 200
+    ) {
+      return NextResponse.json(
+        { error: "Invalid physiological data. Please provide realistic values." },
+        { status: 400 }
+      );
+    }
 
     const stravaId = session.user.stravaId;
 

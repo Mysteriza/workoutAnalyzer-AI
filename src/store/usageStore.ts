@@ -2,32 +2,33 @@ import { create } from "zustand";
 import { getPacificDateKey } from "@/utils/date";
 
 interface UsageState {
-  count: number;
+  geminiCount: number;
+  groqCount: number;
   lastReset: string;
   isLoaded: boolean;
-  getUsage: () => number;
-  setUsage: (count: number) => void;
+  geminiLimit: number;
+  groqLimit: number;
+  getUsage: (provider: "Gemini" | "Groq") => number;
   incrementUsage: () => Promise<void>;
   loadFromCloud: () => Promise<void>;
 }
 
 export const useUsageStore = create<UsageState>()((set, get) => ({
-  count: 0,
+  geminiCount: 0,
+  groqCount: 0,
   lastReset: getPacificDateKey(),
   isLoaded: false,
+  geminiLimit: 500,
+  groqLimit: 300,
 
-  getUsage: () => {
+  getUsage: (provider: "Gemini" | "Groq") => {
     const state = get();
     const todayPacific = getPacificDateKey();
 
     if (state.lastReset !== todayPacific) {
       return 0;
     }
-    return state.count;
-  },
-
-  setUsage: (count: number) => {
-    set({ count, lastReset: getPacificDateKey() });
+    return provider === "Groq" ? state.groqCount : state.geminiCount;
   },
 
   incrementUsage: async () => {
@@ -38,12 +39,15 @@ export const useUsageStore = create<UsageState>()((set, get) => ({
 
   loadFromCloud: async () => {
     try {
-      const response = await fetch("/api/usage");
+      const response = await fetch("/api/usage", { cache: "no-store", headers: { 'Cache-Control': 'no-cache' } });
       if (response.ok) {
         const data = await response.json();
         set({
-          count: data.count,
+          geminiCount: data.geminiCount,
+          groqCount: data.groqCount,
           lastReset: data.lastReset,
+          geminiLimit: data.geminiLimit || 500,
+          groqLimit: data.groqLimit || 300,
           isLoaded: true,
         });
       } else {

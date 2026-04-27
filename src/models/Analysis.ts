@@ -4,6 +4,8 @@ export interface IAnalysis extends Document {
   userId: mongoose.Types.ObjectId;
   activityId: number; // Strava Activity ID
   content: string;
+  provider?: string;
+  aiModel?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,6 +15,8 @@ const AnalysisSchema: Schema<IAnalysis> = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     activityId: { type: Number, required: true },
     content: { type: String, required: true },
+    provider: { type: String, default: "Gemini" },
+    aiModel: { type: String, default: "gemini-3.0-flash" },
   },
   { timestamps: true }
 );

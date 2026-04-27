@@ -42,6 +42,8 @@ export async function GET(req: Request) {
     return NextResponse.json({
       found: true,
       content: analysis.content,
+      provider: analysis.provider || "Gemini",
+      aiModel: analysis.aiModel || "gemini-3.0-flash",
       updatedAt: analysis.updatedAt,
     });
   } catch (error) {
@@ -59,7 +61,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { prompt, activityId, forceRefresh } = body;
+    const { prompt, systemInstruction, activityId, forceRefresh } = body;
     const session = await auth();
 
     if (!session || !session.user) {
@@ -109,6 +111,8 @@ export async function POST(req: Request) {
               error: "Cooldown active",
               retryAfter: Math.ceil(5 - diffSeconds),
               content: existingAnalysis.content,
+              provider: existingAnalysis.provider || "Gemini",
+              aiModel: existingAnalysis.aiModel || "gemini-3.0-flash",
             },
             { status: 429 }
           );
@@ -117,20 +121,26 @@ export async function POST(req: Request) {
         return NextResponse.json({
           content: existingAnalysis.content,
           isCached: true,
+          provider: existingAnalysis.provider || "Gemini",
+          aiModel: existingAnalysis.aiModel || "gemini-3.0-flash",
           updatedAt: existingAnalysis.updatedAt,
         });
       }
     }
 
     // Check quota using global atomic increment (shared API key)
-    const { getOrCreateGlobalUsage, isQuotaExceeded, DAILY_QUOTA } =
+    const { getOrCreateGlobalUsage, isQuotaExceeded, GEMINI_QUOTA, GROQ_QUOTA } =
       await import("@/lib/usage");
 
     await getOrCreateGlobalUsage();
-    if (await isQuotaExceeded()) {
+    
+    const geminiExceeded = await isQuotaExceeded("Gemini");
+    const groqExceeded = await isQuotaExceeded("Groq");
+
+    if (geminiExceeded && groqExceeded) {
       return NextResponse.json(
         {
-          error: `Daily analysis quota exceeded (${DAILY_QUOTA}/${DAILY_QUOTA}). Please try again tomorrow.`,
+          error: `All AI provider quotas exceeded (Gemini: ${GEMINI_QUOTA}, Groq: ${GROQ_QUOTA}). Please try again tomorrow.`,
           code: "QUOTA_EXCEEDED",
         },
         { status: 429 }
@@ -140,26 +150,51 @@ export async function POST(req: Request) {
     // Generate AI analysis
     let text = "";
     let usedModel = MODEL_ID;
+    let geminiFailed = false;
+    let geminiErrorMessage = "";
+    
+    const fullPrompt = systemInstruction ? `${systemInstruction}\n\n${prompt}` : prompt;
 
-    try {
-      console.log(`[Analyze] Using primary model (Gemini): ${MODEL_ID} for activity: ${activityId}`);
-      const model = genAI.getGenerativeModel({ model: MODEL_ID });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      text = response.text();
-      console.log(`[Analyze] Successfully generated analysis via Gemini for activity: ${activityId}`);
-    } catch (geminiError: any) {
-      console.error("[Analyze] Gemini API failed:", geminiError.message || geminiError);
-      
+    if (!geminiExceeded) {
+      try {
+        console.log(`[Analyze] Using primary model (Gemini): ${MODEL_ID} for activity: ${activityId}`);
+        const model = genAI.getGenerativeModel({ model: MODEL_ID });
+        const result = await model.generateContent(fullPrompt);
+        const response = await result.response;
+        text = response.text();
+        console.log(`[Analyze] Successfully generated analysis via Gemini for activity: ${activityId}`);
+      } catch (geminiError: any) {
+        console.error("[Analyze] Gemini API failed:", geminiError.message || geminiError);
+        geminiFailed = true;
+        geminiErrorMessage = geminiError.message;
+      }
+    } else {
+      console.log(`[Analyze] Gemini quota exceeded. Proceeding directly to fallback.`);
+      geminiFailed = true;
+      geminiErrorMessage = "Gemini quota exceeded.";
+    }
+
+    if (geminiFailed) {
       const groqApiKey = process.env.GROQ_API_KEY;
       if (!groqApiKey || groqApiKey === "your_groq_api_key_here") {
         console.error("[Analyze] GROQ_API_KEY is not configured. Cannot fallback.");
-        throw geminiError; // Rethrow original error if fallback is not configured
+        throw new Error(`Gemini failed and Groq fallback is not configured. Original error: ${geminiErrorMessage}`);
       }
       
       console.log(`[Analyze] Falling back to Groq API...`);
       usedModel = "llama-3.3-70b-versatile"; // High-quality fast fallback model
       
+      if (groqExceeded) {
+        console.error(`[Analyze] Groq fallback unavailable: quota exceeded.`);
+        throw new Error(`Fallback unavailable: Groq daily limit reached. Original Gemini error: ${geminiErrorMessage}`);
+      }
+      
+      const groqMessages = [];
+      if (systemInstruction) {
+        groqMessages.push({ role: "system", content: systemInstruction });
+      }
+      groqMessages.push({ role: "user", content: prompt });
+
       const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -168,7 +203,7 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           model: usedModel,
-          messages: [{ role: "user", content: prompt }],
+          messages: groqMessages,
           temperature: 0.7,
         }),
       });
@@ -176,7 +211,7 @@ export async function POST(req: Request) {
       if (!groqResponse.ok) {
         const errorData = await groqResponse.json().catch(() => ({}));
         console.error("[Analyze] Groq API fallback also failed:", errorData);
-        throw new Error(`Fallback to Groq failed: ${errorData.error?.message || groqResponse.statusText}. Original Gemini error: ${geminiError.message}`);
+        throw new Error(`Fallback to Groq failed: ${errorData.error?.message || groqResponse.statusText}. Original Gemini error: ${geminiErrorMessage}`);
       }
       
       const groqData = await groqResponse.json();
@@ -184,22 +219,28 @@ export async function POST(req: Request) {
       console.log(`[Analyze] Successfully generated analysis via Groq (${usedModel}) for activity: ${activityId}`);
     }
 
+    const currentProvider = usedModel.includes("llama") ? "Groq" : "Gemini";
+
     // Save analysis
     await Analysis.findOneAndUpdate(
       { userId, activityId },
-      { content: text },
+      { 
+        content: text,
+        provider: currentProvider,
+        aiModel: usedModel
+      },
       { upsert: true, new: true }
     );
 
     // Increment global quota atomically
-    await (await import("@/lib/usage")).incrementGlobalUsage();
+    await (await import("@/lib/usage")).incrementGlobalUsage(currentProvider as "Gemini" | "Groq");
 
     return NextResponse.json({
       content: text,
       isCached: false,
       updatedAt: new Date(),
-      model: usedModel,
-      provider: usedModel.includes("llama") ? "Groq" : "Gemini",
+      aiModel: usedModel,
+      provider: currentProvider,
     });
   } catch (error: unknown) {
     console.error("[Analyze] Error details:", error);

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getOrCreateGlobalUsage, getPacificDateKey, DAILY_QUOTA } from "@/lib/usage";
+import { getOrCreateGlobalUsage, getPacificDateKey } from "@/lib/usage";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -13,10 +15,11 @@ export async function GET() {
     const todayPacific = getPacificDateKey();
 
     return NextResponse.json({
-      count: globalUsage.usageCount || 0,
+      geminiCount: globalUsage.geminiCount || 0,
+      groqCount: globalUsage.groqCount || 0,
       lastReset: globalUsage.lastReset || todayPacific,
-      limit: DAILY_QUOTA,
-      remaining: Math.max(0, DAILY_QUOTA - (globalUsage.usageCount || 0)),
+      geminiLimit: 500,
+      groqLimit: 300,
     });
   } catch {
     return NextResponse.json({ error: "Failed to get usage" }, { status: 500 });

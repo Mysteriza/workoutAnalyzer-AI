@@ -1,7 +1,8 @@
 import dbConnect from "@/lib/db";
 import GlobalUsage from "@/models/GlobalUsage";
 
-const DAILY_QUOTA = 500;
+const GEMINI_QUOTA = 500;
+const GROQ_QUOTA = 300;
 
 export function getPacificDateKey(): string {
   const now = new Date();
@@ -13,7 +14,7 @@ export function getPacificDateKey(): string {
 
 /**
  * Get or create the global usage document.
- * Resets the counter if the date has changed.
+ * Resets the counters if the date has changed.
  */
 export async function getOrCreateGlobalUsage() {
   await dbConnect();
@@ -22,7 +23,7 @@ export async function getOrCreateGlobalUsage() {
   // Atomically find or create, resetting if date changed
   const usage = await GlobalUsage.findOneAndUpdate(
     { lastReset: { $ne: todayPacific } },
-    { $set: { usageCount: 0, lastReset: todayPacific } },
+    { $set: { geminiCount: 0, groqCount: 0, lastReset: todayPacific } },
     { upsert: false, new: false }
   );
 
@@ -34,29 +35,48 @@ export async function getOrCreateGlobalUsage() {
 
   if (!currentUsage) {
     currentUsage = await GlobalUsage.create({
-      usageCount: 0,
+      geminiCount: 0,
+      groqCount: 0,
       lastReset: todayPacific,
     });
+  } else if (currentUsage.groqCount === undefined || currentUsage.geminiCount === undefined) {
+    // Fix existing documents that might be missing the fields
+    currentUsage = await GlobalUsage.findOneAndUpdate(
+      { _id: currentUsage._id },
+      { $set: { 
+        geminiCount: currentUsage.geminiCount || 0, 
+        groqCount: currentUsage.groqCount || 0 
+      } },
+      { new: true }
+    );
   }
 
   return currentUsage;
 }
 
 /**
- * Atomically increment the global usage counter.
- * Returns the updated usage document, or null if quota exceeded.
+ * Atomically increment the global usage counter for a specific provider.
  */
-export async function incrementGlobalUsage() {
+export async function incrementGlobalUsage(provider: "Gemini" | "Groq") {
   await dbConnect();
   const todayPacific = getPacificDateKey();
+  
+  const incField = provider === "Groq" ? "groqCount" : "geminiCount";
+  const limit = provider === "Groq" ? GROQ_QUOTA : GEMINI_QUOTA;
 
-  // Atomic check-and-increment: only increment if under quota AND date matches
+  // Ensure the document has the fields before incrementing
+  await getOrCreateGlobalUsage();
+
+  // Atomic check-and-increment
   const result = await GlobalUsage.findOneAndUpdate(
     {
       lastReset: todayPacific,
-      usageCount: { $lt: DAILY_QUOTA },
+      $or: [
+        { [incField]: { $lt: limit } },
+        { [incField]: { $exists: false } }
+      ]
     },
-    { $inc: { usageCount: 1 } },
+    { $inc: { [incField]: 1 } },
     { new: true }
   );
 
@@ -69,7 +89,8 @@ export async function incrementGlobalUsage() {
 
   if (!usage) {
     usage = await GlobalUsage.create({
-      usageCount: 1,
+      geminiCount: provider === "Gemini" ? 1 : 0,
+      groqCount: provider === "Groq" ? 1 : 0,
       lastReset: todayPacific,
     });
     return usage;
@@ -79,7 +100,7 @@ export async function incrementGlobalUsage() {
   if (usage.lastReset !== todayPacific) {
     usage = await GlobalUsage.findOneAndUpdate(
       { _id: usage._id },
-      { $set: { usageCount: 1, lastReset: todayPacific } },
+      { $set: { geminiCount: provider === "Gemini" ? 1 : 0, groqCount: provider === "Groq" ? 1 : 0, lastReset: todayPacific } },
       { new: true }
     );
     return usage!;
@@ -90,11 +111,14 @@ export async function incrementGlobalUsage() {
 }
 
 /**
- * Check if the daily quota has been exceeded.
+ * Check if the daily quota has been exceeded for a specific provider.
  */
-export async function isQuotaExceeded(): Promise<boolean> {
+export async function isQuotaExceeded(provider: "Gemini" | "Groq"): Promise<boolean> {
   const usage = await getOrCreateGlobalUsage();
-  return usage.usageCount >= DAILY_QUOTA;
+  if (provider === "Groq") {
+    return usage.groqCount >= GROQ_QUOTA;
+  }
+  return usage.geminiCount >= GEMINI_QUOTA;
 }
 
-export { DAILY_QUOTA };
+export { GEMINI_QUOTA, GROQ_QUOTA };

@@ -81,7 +81,12 @@ export function getSavedAnalysis(activityId: number): SavedAnalysis | null {
   }
 }
 
-export function saveAnalysis(activityId: number, content: string): void {
+export function saveAnalysis(
+  activityId: number, 
+  content: string, 
+  provider?: string, 
+  aiModel?: string
+): void {
   if (typeof window === "undefined") return;
   if (!Number.isInteger(activityId) || activityId <= 0) return;
   if (!content || typeof content !== "string") return;
@@ -102,6 +107,8 @@ export function saveAnalysis(activityId: number, content: string): void {
     activityId,
     content: content.substring(0, 50000),
     analyzedAt: new Date().toISOString(),
+    provider,
+    aiModel,
   };
 
   if (existingIndex >= 0) {

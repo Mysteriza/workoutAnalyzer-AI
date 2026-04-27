@@ -8,10 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUserStore } from "@/store/userStore";
 import { useUsageStore } from "@/store/usageStore";
-import { StravaActivity, ChartDataPoint } from "@/types";
+import { StravaActivity, ChartDataPoint, ActivityDetail } from "@/types";
 import { analyzeActivity } from "@/utils/gemini";
 import { getSavedAnalysis, saveAnalysis, deleteAnalysis } from "@/utils/storage";
-import { getTimeUntilPacificMidnight } from "@/utils/date";
+import { getTimeUntilPacificMidnight, getPacificDateKey } from "@/utils/date";
 import {
   Brain,
   Loader2,
@@ -24,24 +24,14 @@ import {
 } from "lucide-react";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
-interface ModelInfo {
-  id: string;
-  name: string;
-  limits: {
-    rpm: number;
-    tpm: number;
-    rpd: number;
-  };
-}
-
 interface AIAnalysisProps {
-  activity: StravaActivity;
+  activity: ActivityDetail["activity"];
   streamData: ChartDataPoint[];
 }
 
 export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   const { userProfile, isProfileConfigured } = useUserStore();
-  const { count, lastReset, incrementUsage, loadFromCloud } = useUsageStore();
+  const { geminiCount, groqCount, lastReset, geminiLimit, groqLimit, incrementUsage, loadFromCloud } = useUsageStore();
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [analyzedAt, setAnalyzedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,14 +40,9 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   const [showReAnalyzeModal, setShowReAnalyzeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [aiProvider, setAiProvider] = useState<string>("Gemini");
-  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
 
   useEffect(() => {
     loadFromCloud();
-    fetch("/api/model")
-      .then((res) => res.json())
-      .then((data) => setModelInfo(data))
-      .catch(() => {});
   }, [loadFromCloud]);
 
   useEffect(() => {
@@ -72,8 +57,9 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
           if (data.found && data.content) {
             setAnalysis(data.content);
             setAnalyzedAt(new Date(data.updatedAt).toISOString());
+            if (data.provider) setAiProvider(data.provider);
             // Sync to localStorage for offline fallback
-            saveAnalysis(activity.id, data.content);
+            saveAnalysis(activity.id, data.content, data.provider, data.aiModel);
             return;
           }
         }
@@ -86,6 +72,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
       if (saved && saved.content && saved.content.trim().length > 0) {
         setAnalysis(saved.content);
         setAnalyzedAt(saved.analyzedAt);
+        if (saved.provider) setAiProvider(saved.provider);
       }
     };
     loadAnalysis();
@@ -107,16 +94,18 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
     setCooldownSeconds(5);
   }, []);
 
+  const currentLimit = analysis && aiProvider === "Groq" ? groqLimit : geminiLimit;
+  const currentCount = analysis && aiProvider === "Groq" ? groqCount : geminiCount;
+
   const getRemainingQuota = useMemo(() => {
-    if (!modelInfo) return 0;
     const todayPacific = new Date(
       new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
     )
       .toISOString()
       .split("T")[0];
-    const used = todayPacific === lastReset ? count : 0;
-    return Math.max(0, modelInfo.limits.rpd - used);
-  }, [modelInfo, lastReset, count]);
+    const used = todayPacific === lastReset ? currentCount : 0;
+    return Math.max(0, currentLimit - used);
+  }, [currentLimit, currentCount, lastReset]);
 
   const isQuotaExhausted = getRemainingQuota <= 0;
   const resetTime = getTimeUntilPacificMidnight();
@@ -150,7 +139,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
         }
         const now = new Date().toISOString();
         setAnalyzedAt(now);
-        saveAnalysis(activity.id, result.content);
+        saveAnalysis(activity.id, result.content, result.provider, result.aiModel);
         incrementUsage();
         startCooldown();
       } else {
@@ -240,9 +229,8 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50 font-medium text-foreground">
                   <Zap className="h-3 w-3 text-yellow-500" />
-                  Powered by {aiProvider}
+                  Powered by {analysis ? aiProvider : "Gemini or Groq"}
                 </span>
-                {modelInfo && (
                   <span
                     className={`px-1.5 py-0.5 rounded font-medium ${
                       isQuotaExhausted
@@ -250,9 +238,11 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                         : "bg-primary/10 text-primary"
                     }`}
                   >
-                    {getRemainingQuota}/{modelInfo.limits.rpd} RPD
+                    {analysis 
+                      ? `${getRemainingQuota}/${currentLimit} RPD`
+                      : `${Math.max(0, geminiLimit - (lastReset === getPacificDateKey() ? geminiCount : 0))}/${geminiLimit} (G) | ${Math.max(0, groqLimit - (lastReset === getPacificDateKey() ? groqCount : 0))}/${groqLimit} (Q)`
+                    }
                   </span>
-                )}
                 {analyzedAt && analysis && (
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
@@ -373,7 +363,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                     Daily Quota Exhausted
                   </p>
                   <p className="text-xs text-muted-foreground text-center max-w-xs px-2">
-                    You have used all {modelInfo?.limits.rpd} requests for today.
+                    You have used all {currentLimit} requests for today.
                     Resets in {resetTime.hours}h {resetTime.minutes}m (midnight
                     Pacific).
                   </p>
@@ -383,11 +373,9 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                   <p className="text-sm text-muted-foreground">
                     Ready to Analyze
                   </p>
-                  {modelInfo && (
-                    <p className="text-xs text-muted-foreground">
-                      {modelInfo.name} · {getRemainingQuota} requests left today
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {getRemainingQuota} requests left today
+                  </p>
                   <Button size="sm" onClick={() => handleAnalyze()} className="gap-2">
                     <Sparkles className="h-3.5 w-3.5" />
                     Generate Analysis
@@ -413,7 +401,7 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
                   </h2>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  You have used all {modelInfo?.limits.rpd} AI analysis requests
+                  You have used all {currentLimit} AI analysis requests
                   for today. The quota will reset at midnight Pacific Time.
                 </p>
                 <div className="p-3 bg-muted rounded-lg mb-4 text-center">
