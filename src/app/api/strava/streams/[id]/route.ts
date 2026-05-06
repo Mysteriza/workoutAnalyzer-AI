@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Activity from "@/models/Activity";
 import User from "@/models/User";
+import { getValidStravaAccessToken } from "@/lib/stravaToken";
 
 const STRAVA_API_BASE = "https://www.strava.com/api/v3";
 
@@ -19,6 +20,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  if (!/^\d+$/.test(id)) {
+    return NextResponse.json({ error: "Invalid activity ID" }, { status: 400 });
+  }
 
   // 1. Authenticate first — ensures session is valid before any work
   const session = await auth();
@@ -26,18 +30,9 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return NextResponse.json(
-      { error: "Missing or invalid authorization header" },
-      { status: 401 }
-    );
-  }
-
-  const accessToken = authHeader.replace("Bearer ", "");
-
   try {
     await dbConnect();
+    const accessToken = await getValidStravaAccessToken(session.user.stravaId);
 
     let userId = session.user.id;
     // Fallback: look up userId if not in session but stravaId is

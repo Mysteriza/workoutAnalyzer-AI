@@ -5,15 +5,21 @@ import { useEffect } from "react";
 import { useUserStore } from "@/store/userStore";
 
 export function SessionSync() {
-  const { data: session } = useSession();
-  const { setProfile, setTokens, tokens } = useUserStore();
+  const { data: session, status } = useSession();
+  const { setProfile, setConnected } = useUserStore();
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (status === "loading") return;
+
+    if (!session?.user) {
+      setConnected(false);
+      return;
+    }
 
     // Sync profile from session (MongoDB → localStorage) on every mount
-    const { profile, accessToken, refreshToken, expiresAt, stravaId } =
-      session.user;
+    const { profile } = session.user;
+
+    setConnected(true);
 
     if (profile) {
       setProfile({
@@ -26,17 +32,7 @@ export function SessionSync() {
       });
     }
 
-    // Sync tokens if not already set locally
-    if (!tokens && accessToken && refreshToken && expiresAt) {
-      console.log("[SessionSync] Syncing tokens from session...");
-      setTokens({
-        accessToken,
-        refreshToken,
-        expiresAt: Number(expiresAt),
-        athleteId: Number(stravaId),
-      });
-    }
-  }, [session, tokens, setProfile, setTokens]);
+  }, [session, status, setConnected, setProfile]);
 
   return null;
 }

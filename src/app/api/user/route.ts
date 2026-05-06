@@ -48,7 +48,7 @@ export async function PUT(req: Request) {
           "profile.isConfigured": true,
         },
       },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!user) {

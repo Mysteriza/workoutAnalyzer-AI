@@ -23,12 +23,12 @@ interface ActivityState {
   isLoading: boolean;
   error: string | null;
 
-  fetchActivities: (accessToken: string) => Promise<void>;
+  fetchActivities: (accessToken?: string) => Promise<void>;
   fetchActivityDetail: (
     activityId: number,
-    accessToken: string,
+    accessToken?: string,
   ) => Promise<void>;
-  fetchStreams: (activityId: number, accessToken: string) => Promise<void>;
+  fetchStreams: (activityId: number, accessToken?: string) => Promise<void>;
   setSelectedActivity: (activity: StravaActivity | null) => void;
   clearError: () => void;
   initializeFromCache: () => void;
@@ -52,20 +52,11 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     }
   },
 
-  fetchActivities: async (accessToken: string) => {
-    if (!accessToken || typeof accessToken !== "string") {
-      set({ error: "Invalid access token" });
-      return;
-    }
-
+  fetchActivities: async () => {
     set({ isLoading: true, error: null });
 
     try {
-      const response = await stravaFetch("/api/strava/activities?per_page=50", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const response = await stravaFetch("/api/strava/activities?per_page=50");
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -100,14 +91,9 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     }
   },
 
-  fetchActivityDetail: async (activityId: number, accessToken: string) => {
+  fetchActivityDetail: async (activityId: number) => {
     if (!Number.isInteger(activityId) || activityId <= 0) {
       set({ error: "Invalid activity ID" });
-      return;
-    }
-
-    if (!accessToken || typeof accessToken !== "string") {
-      set({ error: "Invalid access token" });
       return;
     }
 
@@ -141,11 +127,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     set({ isLoading: true, error: null, isFromCache: false });
 
     try {
-      const response = await stravaFetch(`/api/strava/streams/${activityId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const response = await stravaFetch(`/api/strava/streams/${activityId}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -196,8 +178,8 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     }
   },
 
-  fetchStreams: async (activityId: number, accessToken: string) => {
-    return get().fetchActivityDetail(activityId, accessToken);
+  fetchStreams: async (activityId: number) => {
+    return get().fetchActivityDetail(activityId);
   },
 
   setSelectedActivity: (activity: StravaActivity | null) => {

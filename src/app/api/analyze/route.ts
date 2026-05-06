@@ -3,9 +3,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Analysis from "@/models/Analysis";
+import Activity from "@/models/Activity";
 import { MODEL_ID } from "@/app/api/model/route";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const MAX_PROMPT_CHARS = 60000;
+const MAX_SYSTEM_INSTRUCTION_CHARS = 8000;
 
 /**
  * GET — Check if analysis already exists in MongoDB for this activity.
@@ -68,8 +71,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!prompt) {
+    if (!prompt || typeof prompt !== "string") {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+    }
+
+    if (
+      prompt.length > MAX_PROMPT_CHARS ||
+      (systemInstruction &&
+        (typeof systemInstruction !== "string" ||
+          systemInstruction.length > MAX_SYSTEM_INSTRUCTION_CHARS))
+    ) {
+      return NextResponse.json(
+        { error: "Analysis request is too large" },
+        { status: 413 }
+      );
     }
 
     // Validate activityId — must be a positive integer
@@ -95,6 +110,18 @@ export async function POST(req: Request) {
     }
 
     await dbConnect();
+
+    const ownedActivity = await Activity.exists({
+      userId,
+      stravaId: activityId.toString(),
+    });
+
+    if (!ownedActivity) {
+      return NextResponse.json(
+        { error: "Activity not found for this user" },
+        { status: 404 }
+      );
+    }
 
     // Check for existing analysis with atomic cooldown check
     const existingAnalysis = await Analysis.findOne({ userId, activityId });
@@ -229,7 +256,7 @@ export async function POST(req: Request) {
         provider: currentProvider,
         aiModel: usedModel
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
 
     // Increment global quota atomically

@@ -3,7 +3,6 @@ import { UserProfile, StravaTokens } from "@/types";
 import {
   getUserProfile,
   setUserProfile as saveUserProfile,
-  getStravaTokens,
   setStravaTokens as saveStravaTokens,
   clearStravaTokens,
   isTokenExpired,
@@ -18,6 +17,7 @@ interface UserState {
   initializeFromStorage: () => void;
   setProfile: (profile: Partial<UserProfile>) => void;
   setTokens: (tokens: StravaTokens) => void;
+  setConnected: (isConnected: boolean) => void;
   refreshTokens: () => Promise<boolean>;
   disconnectStrava: () => void;
   connectStrava: () => void;
@@ -41,11 +41,10 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   initializeFromStorage: () => {
     const storedProfile = getUserProfile();
-    const tokens = getStravaTokens();
     set({
       userProfile: storedProfile || DEFAULT_PROFILE,
-      tokens,
-      isConnected: !!tokens,
+      tokens: null,
+      isConnected: false,
       isLoading: false,
     });
   },
@@ -71,30 +70,21 @@ export const useUserStore = create<UserState>((set, get) => ({
     set({ tokens, isConnected: true });
   },
 
-  refreshTokens: async () => {
-    const { tokens } = get();
-    if (!tokens) return false;
+  setConnected: (isConnected: boolean) => {
+    if (isConnected) {
+      clearStravaTokens();
+    }
+    set({ isConnected, tokens: null });
+  },
 
+  refreshTokens: async () => {
     try {
       const response = await fetch("/api/strava/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: tokens.refreshToken }),
       });
 
-      if (!response.ok) return false;
-
-      const data = await response.json();
-      const newTokens: StravaTokens = {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresAt: data.expires_at,
-        athleteId: tokens.athleteId,
-      };
-
-      saveStravaTokens(newTokens);
-      set({ tokens: newTokens });
-      return true;
+      return response.ok;
     } catch {
       return false;
     }
@@ -110,16 +100,17 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   getValidAccessToken: async () => {
-    const { tokens, refreshTokens } = get();
-    if (!tokens) return null;
+    const { isConnected, tokens, refreshTokens } = get();
+    if (!isConnected) return null;
+    if (!tokens) return "server-managed-token";
 
     if (isTokenExpired(tokens)) {
       const success = await refreshTokens();
       if (!success) return null;
-      return get().tokens?.accessToken || null;
+      return "server-managed-token";
     }
 
-    return tokens.accessToken;
+    return "server-managed-token";
   },
 
   isProfileConfigured: () => {

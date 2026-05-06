@@ -24,7 +24,7 @@ export async function getOrCreateGlobalUsage() {
   const usage = await GlobalUsage.findOneAndUpdate(
     { lastReset: { $ne: todayPacific } },
     { $set: { geminiCount: 0, groqCount: 0, lastReset: todayPacific } },
-    { upsert: false, new: false }
+    { upsert: false, returnDocument: "before" }
   );
 
   if (usage) {
@@ -47,7 +47,7 @@ export async function getOrCreateGlobalUsage() {
         geminiCount: currentUsage.geminiCount || 0, 
         groqCount: currentUsage.groqCount || 0 
       } },
-      { new: true }
+      { returnDocument: "after" }
     );
   }
 
@@ -77,7 +77,7 @@ export async function incrementGlobalUsage(provider: "Gemini" | "Groq") {
       ]
     },
     { $inc: { [incField]: 1 } },
-    { new: true }
+    { returnDocument: "after" }
   );
 
   if (result) {
@@ -101,7 +101,7 @@ export async function incrementGlobalUsage(provider: "Gemini" | "Groq") {
     usage = await GlobalUsage.findOneAndUpdate(
       { _id: usage._id },
       { $set: { geminiCount: provider === "Gemini" ? 1 : 0, groqCount: provider === "Groq" ? 1 : 0, lastReset: todayPacific } },
-      { new: true }
+      { returnDocument: "after" }
     );
     return usage!;
   }

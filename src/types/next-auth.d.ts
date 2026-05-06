@@ -8,9 +8,6 @@ declare module "next-auth" {
     user: {
       id: string;
       stravaId: string;
-      accessToken: string;
-      refreshToken: string;
-      expiresAt: number;
       profile?: {
         age?: number;
         weight?: number;
@@ -24,9 +21,6 @@ declare module "next-auth" {
 
   interface User {
     stravaId?: string;
-    accessToken?: string;
-    refreshToken?: string;
-    expiresAt?: number;
     profile?: {
       age?: number;
       weight?: number;
@@ -42,9 +36,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     userId?: string;
     stravaId?: string;
-    accessToken?: string;
-    refreshToken?: string;
-    expiresAt?: number;
     profile?: {
       age?: number;
       weight?: number;

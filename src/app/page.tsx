@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useUserStore } from "@/store/userStore";
 import dynamic from "next/dynamic";
 const ActivityList = dynamic(() => import("@/components/ActivityList").then(mod => mod.ActivityList), { ssr: false, loading: () => <div className="animate-pulse flex flex-col gap-4"><div className="h-32 bg-muted/50 rounded-xl"/><div className="h-32 bg-muted/50 rounded-xl"/></div> });
@@ -10,13 +11,14 @@ import { Card } from "@/components/ui/card";
 import { Settings, Zap, Activity, TrendingUp, Brain } from "lucide-react";
 
 export default function HomePage() {
-  const { isConnected, userProfile, isLoading, initializeFromStorage } = useUserStore();
+  const { status } = useSession();
+  const { userProfile, isLoading, initializeFromStorage } = useUserStore();
 
   useEffect(() => {
     initializeFromStorage();
   }, [initializeFromStorage]);
 
-  if (isLoading) {
+  if (isLoading || status === "loading") {
     return (
       <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[60vh]">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -24,7 +26,7 @@ export default function HomePage() {
     );
   }
 
-  if (!isConnected || !userProfile) {
+  if (status !== "authenticated" || !userProfile) {
     return (
       <div className="container mx-auto px-4 py-8 sm:py-16 animate-in-fade">
         <div className="max-w-3xl mx-auto text-center space-y-10 sm:space-y-12">

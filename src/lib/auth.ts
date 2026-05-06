@@ -67,13 +67,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     },
     async jwt({ token, account, user, trigger, session }) {
-      // On initial sign-in, store all user data in the JWT token
+      // Keep only non-secret identity data in the browser-readable session.
       if (account && user) {
         token.userId = user.id;
         token.stravaId = account.providerAccountId;
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.expiresAt = account.expires_at;
       }
 
       // On session update trigger (e.g., profile change), refresh from DB
@@ -85,12 +82,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (token && session.user) {
-        // Read from JWT instead of DB — eliminates N+1 queries
         session.user.id = token.userId as string;
         session.user.stravaId = token.stravaId as string;
-        session.user.accessToken = token.accessToken as string;
-        session.user.refreshToken = token.refreshToken as string;
-        session.user.expiresAt = token.expiresAt as number;
         session.user.profile = token.profile as
           | typeof session.user.profile
           | undefined;

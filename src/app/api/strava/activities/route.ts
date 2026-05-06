@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Activity from "@/models/Activity";
 import User from "@/models/User";
+import { getValidStravaAccessToken } from "@/lib/stravaToken";
 
 const STRAVA_API_BASE = "https://www.strava.com/api/v3";
 
@@ -16,20 +17,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  const searchParams = request.nextUrl.searchParams;
+  const page = Number(searchParams.get("page") || "1");
+  const perPage = Number(searchParams.get("per_page") || "30");
+
+  if (
+    !Number.isInteger(page) ||
+    page < 1 ||
+    !Number.isInteger(perPage) ||
+    perPage < 1 ||
+    perPage > 100
+  ) {
     return NextResponse.json(
-      { error: "Missing or invalid authorization header" },
-      { status: 401 }
+      { error: "Invalid pagination parameters" },
+      { status: 400 }
     );
   }
 
-  const accessToken = authHeader.replace("Bearer ", "");
-  const searchParams = request.nextUrl.searchParams;
-  const page = searchParams.get("page") || "1";
-  const perPage = searchParams.get("per_page") || "30";
-
   try {
+    await dbConnect();
+    const accessToken = await getValidStravaAccessToken(session.user.stravaId);
+
     const response = await fetch(
       `${STRAVA_API_BASE}/athlete/activities?page=${page}&per_page=${perPage}`,
       {
@@ -51,8 +59,6 @@ export async function GET(request: NextRequest) {
 
     // Cache activity summaries to MongoDB for cross-device persistence
     if (activities.length > 0 && Array.isArray(activities)) {
-      await dbConnect();
-
       const userId = session.user.id;
       const stravaId = session.user.stravaId;
 
