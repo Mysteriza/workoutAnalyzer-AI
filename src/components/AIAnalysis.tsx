@@ -41,42 +41,37 @@ export function AIAnalysis({ activity, streamData }: AIAnalysisProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [aiProvider, setAiProvider] = useState<string>("Gemini");
 
+  const loadAnalysis = useCallback(async () => {
+    // 1. Try MongoDB first (cloud storage)
+    try {
+      const response = await fetch(
+        `/api/analyze?activityId=${activity.id}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data.found && data.content) {
+          setAnalysis(data.content);
+          setAnalyzedAt(new Date(data.updatedAt).toISOString());
+          if (data.provider) setAiProvider(data.provider);
+          saveAnalysis(activity.id, data.content, data.provider, data.aiModel);
+          return;
+        }
+      }
+    } catch {
+    }
+
+    const saved = getSavedAnalysis(activity.id);
+    if (saved && saved.content && saved.content.trim().length > 0) {
+      setAnalysis(saved.content);
+      setAnalyzedAt(saved.analyzedAt);
+      if (saved.provider) setAiProvider(saved.provider);
+    }
+  }, [activity.id]);
+
   useEffect(() => {
     loadFromCloud();
-  }, [loadFromCloud]);
-
-  useEffect(() => {
-    const loadAnalysis = async () => {
-      // 1. Try MongoDB first (cloud storage)
-      try {
-        const response = await fetch(
-          `/api/analyze?activityId=${activity.id}`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          if (data.found && data.content) {
-            setAnalysis(data.content);
-            setAnalyzedAt(new Date(data.updatedAt).toISOString());
-            if (data.provider) setAiProvider(data.provider);
-            // Sync to localStorage for offline fallback
-            saveAnalysis(activity.id, data.content, data.provider, data.aiModel);
-            return;
-          }
-        }
-      } catch {
-        // MongoDB fetch failed — fall through to localStorage
-      }
-
-      // 2. Fallback to localStorage
-      const saved = getSavedAnalysis(activity.id);
-      if (saved && saved.content && saved.content.trim().length > 0) {
-        setAnalysis(saved.content);
-        setAnalyzedAt(saved.analyzedAt);
-        if (saved.provider) setAiProvider(saved.provider);
-      }
-    };
     loadAnalysis();
-  }, [activity.id]);
+  }, [activity.id, loadFromCloud, loadAnalysis]);
 
   useEffect(() => {
     if (cooldownSeconds > 0) {

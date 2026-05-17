@@ -23,12 +23,10 @@ interface ActivityState {
   isLoading: boolean;
   error: string | null;
 
-  fetchActivities: (accessToken?: string) => Promise<void>;
+  fetchActivities: () => Promise<void>;
   fetchActivityDetail: (
     activityId: number,
-    accessToken?: string,
   ) => Promise<void>;
-  fetchStreams: (activityId: number, accessToken?: string) => Promise<void>;
   setSelectedActivity: (activity: StravaActivity | null) => void;
   clearError: () => void;
   initializeFromCache: () => void;
@@ -141,31 +139,53 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       }
 
       const streams: StreamData = data.streams || { time: [], distance: [] };
-      const chartData: ChartDataPoint[] = [];
-      const timeData = streams.time || [];
 
-      for (let i = 0; i < timeData.length; i++) {
-        chartData.push({
-          time: timeData[i],
-          distance: streams.distance?.[i] || 0,
-          heartrate: streams.heartrate?.[i],
-          speed: streams.velocity_smooth?.[i],
-          altitude: streams.altitude?.[i],
-          cadence: streams.cadence?.[i],
-          watts: streams.watts?.[i],
-        });
-      }
-
-      const cacheObject = { data: chartData, detail: data };
-      get().streamCache.set(activityId, cacheObject);
-      saveActivityDetailCache(activityId, cacheObject);
-
+      // Set activity detail immediately so page renders, defer chart processing
       set({
         activityDetail: data,
-        streamData: chartData,
         isFromCache: false,
         isLoading: false,
       });
+
+      const streamData: StreamData = streams;
+      const cacheObject = { data: [] as ChartDataPoint[], detail: data };
+
+      const buildChartData = () => {
+        const chartData: ChartDataPoint[] = [];
+        const timeData = streamData.time || [];
+        for (let i = 0; i < timeData.length; i++) {
+          chartData.push({
+            time: timeData[i],
+            distance: streamData.distance?.[i] || 0,
+            heartrate: streamData.heartrate?.[i],
+            speed: streamData.velocity_smooth?.[i],
+            altitude: streamData.altitude?.[i],
+            cadence: streamData.cadence?.[i],
+            watts: streamData.watts?.[i],
+          });
+        }
+        cacheObject.data = chartData;
+        get().streamCache.set(activityId, cacheObject);
+        set({ streamData: chartData });
+      };
+
+      const saveCache = () => {
+        try {
+          saveActivityDetailCache(activityId, cacheObject);
+        } catch {}
+      };
+
+      if (typeof requestIdleCallback !== "undefined") {
+        requestIdleCallback(() => {
+          buildChartData();
+          requestIdleCallback(() => saveCache(), { timeout: 2000 });
+        }, { timeout: 1000 });
+      } else {
+        setTimeout(() => {
+          buildChartData();
+          setTimeout(() => saveCache(), 50);
+        }, 0);
+      }
     } catch (err) {
       set({
         error:

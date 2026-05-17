@@ -12,13 +12,85 @@ const CACHED_ACTIVITIES_KEY = "workout_analyzer_cached_activities";
 const ACTIVITIES_LAST_FETCH_KEY = "workout_analyzer_activities_last_fetch";
 const ACTIVITY_DETAILS_CACHE_KEY = "workout_analyzer_activity_details_cache";
 
+// ── In-memory caches (lazy init, avoid repeated JSON parse/stringify) ──
+let _analysesCache: SavedAnalysis[] | null = null;
+let _analysesDirty = false;
+let _analysesWritePending: ReturnType<typeof setTimeout> | null = null;
+
+let _detailCache: any[] | null = null;
+let _detailCacheDirty = false;
+let _detailCacheWritePending: ReturnType<typeof setTimeout> | null = null;
+
+function loadAnalysesFromLS(): SavedAnalysis[] {
+  if (_analysesCache) return _analysesCache;
+  if (typeof window === "undefined") return [];
+  const stored = localStorage.getItem(SAVED_ANALYSES_KEY);
+  if (!stored) return [];
+  try {
+    _analysesCache = JSON.parse(stored) as SavedAnalysis[];
+  } catch {
+    _analysesCache = [];
+  }
+  return _analysesCache;
+}
+
+function flushAnalysesToLS(): void {
+  if (!_analysesDirty || typeof window === "undefined") return;
+  _analysesDirty = false;
+  _analysesWritePending = null;
+  localStorage.setItem(SAVED_ANALYSES_KEY, JSON.stringify(_analysesCache || []));
+}
+
+function scheduleAnalysesFlush(): void {
+  _analysesDirty = true;
+  if (_analysesWritePending) return;
+  _analysesWritePending = setTimeout(() => {
+    if (typeof requestIdleCallback !== "undefined") {
+      requestIdleCallback(() => flushAnalysesToLS(), { timeout: 3000 });
+    } else {
+      flushAnalysesToLS();
+    }
+  }, 500);
+}
+
+function loadDetailCacheFromLS(): any[] {
+  if (_detailCache) return _detailCache;
+  if (typeof window === "undefined") return [];
+  const stored = localStorage.getItem(ACTIVITY_DETAILS_CACHE_KEY);
+  if (!stored) return [];
+  try {
+    _detailCache = JSON.parse(stored) as any[];
+  } catch {
+    _detailCache = [];
+  }
+  return _detailCache;
+}
+
+function flushDetailCacheToLS(): void {
+  if (!_detailCacheDirty || typeof window === "undefined") return;
+  _detailCacheDirty = false;
+  _detailCacheWritePending = null;
+  localStorage.setItem(ACTIVITY_DETAILS_CACHE_KEY, JSON.stringify(_detailCache || []));
+}
+
+function scheduleDetailFlush(): void {
+  _detailCacheDirty = true;
+  if (_detailCacheWritePending) return;
+  _detailCacheWritePending = setTimeout(() => {
+    if (typeof requestIdleCallback !== "undefined") {
+      requestIdleCallback(() => flushDetailCacheToLS(), { timeout: 3000 });
+    } else {
+      flushDetailCacheToLS();
+    }
+  }, 500);
+}
+
 export function getUserProfile(): UserProfile | null {
   if (typeof window === "undefined") return null;
   const stored = localStorage.getItem(USER_PROFILE_KEY);
   if (!stored) return null;
   try {
     const profile = JSON.parse(stored) as Partial<UserProfile>;
-    // Backward compatibility: default isConfigured to false if not present
     return {
       age: profile.age ?? 25,
       weight: profile.weight ?? 70,
@@ -61,6 +133,8 @@ export function setStravaTokens(tokens: StravaTokens): void {
 export function clearStravaTokens(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STRAVA_TOKENS_KEY);
+  localStorage.removeItem("strava_access_token");
+  localStorage.removeItem("strava_refresh_token");
 }
 
 export function isTokenExpired(tokens: StravaTokens): boolean {
@@ -70,15 +144,8 @@ export function isTokenExpired(tokens: StravaTokens): boolean {
 export function getSavedAnalysis(activityId: number): SavedAnalysis | null {
   if (typeof window === "undefined") return null;
   if (!Number.isInteger(activityId) || activityId <= 0) return null;
-
-  const stored = localStorage.getItem(SAVED_ANALYSES_KEY);
-  if (!stored) return null;
-  try {
-    const analyses: SavedAnalysis[] = JSON.parse(stored);
-    return analyses.find((a) => a.activityId === activityId) || null;
-  } catch {
-    return null;
-  }
+  const analyses = loadAnalysesFromLS();
+  return analyses.find((a) => a.activityId === activityId) || null;
 }
 
 export function saveAnalysis(
@@ -91,17 +158,7 @@ export function saveAnalysis(
   if (!Number.isInteger(activityId) || activityId <= 0) return;
   if (!content || typeof content !== "string") return;
 
-  const stored = localStorage.getItem(SAVED_ANALYSES_KEY);
-  let analyses: SavedAnalysis[] = [];
-
-  try {
-    if (stored) {
-      analyses = JSON.parse(stored);
-    }
-  } catch {
-    analyses = [];
-  }
-
+  const analyses = loadAnalysesFromLS();
   const existingIndex = analyses.findIndex((a) => a.activityId === activityId);
   const newAnalysis: SavedAnalysis = {
     activityId,
@@ -117,38 +174,24 @@ export function saveAnalysis(
     analyses.push(newAnalysis);
   }
 
+  _analysesCache = analyses;
   if (analyses.length > 100) {
-    analyses = analyses.slice(-100);
+    _analysesCache = analyses.slice(-100);
   }
-
-  localStorage.setItem(SAVED_ANALYSES_KEY, JSON.stringify(analyses));
+  scheduleAnalysesFlush();
 }
 
 export function deleteAnalysis(activityId: number): void {
   if (typeof window === "undefined") return;
   if (!Number.isInteger(activityId) || activityId <= 0) return;
 
-  const stored = localStorage.getItem(SAVED_ANALYSES_KEY);
-  if (!stored) return;
-
-  try {
-    let analyses: SavedAnalysis[] = JSON.parse(stored);
-    analyses = analyses.filter((a) => a.activityId !== activityId);
-    localStorage.setItem(SAVED_ANALYSES_KEY, JSON.stringify(analyses));
-  } catch {
-    return;
-  }
+  const analyses = loadAnalysesFromLS();
+  _analysesCache = analyses.filter((a) => a.activityId !== activityId);
+  scheduleAnalysesFlush();
 }
 
 export function getAllSavedAnalyses(): SavedAnalysis[] {
-  if (typeof window === "undefined") return [];
-  const stored = localStorage.getItem(SAVED_ANALYSES_KEY);
-  if (!stored) return [];
-  try {
-    return JSON.parse(stored) as SavedAnalysis[];
-  } catch {
-    return [];
-  }
+  return loadAnalysesFromLS();
 }
 
 export function getCachedActivities(): StravaActivity[] {
@@ -190,8 +233,7 @@ export function getActivitiesLastFetch(): Date | null {
 }
 
 export function hasCachedActivities(): boolean {
-  const cached = getCachedActivities();
-  return cached.length > 0;
+  return getCachedActivities().length > 0;
 }
 
 export function mergeActivities(
@@ -200,17 +242,17 @@ export function mergeActivities(
 ): StravaActivity[] {
   const merged = new Map<number, StravaActivity>();
 
-  cached.forEach((activity) => {
+  for (const activity of cached) {
     if (activity && activity.id) {
       merged.set(activity.id, activity);
     }
-  });
+  }
 
-  fetched.forEach((activity) => {
+  for (const activity of fetched) {
     if (activity && activity.id) {
       merged.set(activity.id, activity);
     }
-  });
+  }
 
   return Array.from(merged.values()).sort(
     (a, b) =>
@@ -226,16 +268,9 @@ export function clearCachedActivities(): void {
 
 export function getActivityDetailCache(activityId: number): any | null {
   if (typeof window === "undefined") return null;
-  const stored = localStorage.getItem(ACTIVITY_DETAILS_CACHE_KEY);
-  if (!stored) return null;
-
-  try {
-    const cache = JSON.parse(stored);
-    const item = cache.find((i: any) => i.id === activityId);
-    return item ? item.data : null;
-  } catch {
-    return null;
-  }
+  const cache = loadDetailCacheFromLS();
+  const item = cache.find((i: any) => i.id === activityId);
+  return item ? item.data : null;
 }
 
 const DETAIL_CACHE_MAX = 3;
@@ -243,32 +278,22 @@ const DETAIL_CACHE_MAX = 3;
 export function saveActivityDetailCache(activityId: number, data: any): void {
   if (typeof window === "undefined") return;
 
-  const trySave = (items: any[]) => {
-    localStorage.setItem(ACTIVITY_DETAILS_CACHE_KEY, JSON.stringify(items));
-  };
+  const cache = loadDetailCacheFromLS().filter((i: any) => i.id !== activityId);
+  cache.unshift({ id: activityId, data, timestamp: Date.now() });
+
+  _detailCache = cache;
+  if (cache.length > DETAIL_CACHE_MAX) {
+    _detailCache = cache.slice(0, DETAIL_CACHE_MAX);
+  }
 
   try {
-    const stored = localStorage.getItem(ACTIVITY_DETAILS_CACHE_KEY);
-    let cache: any[] = stored ? JSON.parse(stored) : [];
-
-    cache = cache.filter((i) => i.id !== activityId);
-    cache.unshift({ id: activityId, data, timestamp: Date.now() });
-
-    if (cache.length > DETAIL_CACHE_MAX) {
-      cache = cache.slice(0, DETAIL_CACHE_MAX);
-    }
-
-    trySave(cache);
+    scheduleDetailFlush();
   } catch (e) {
     if (e instanceof DOMException && e.name === "QuotaExceededError") {
-      try {
+      if (typeof window !== "undefined") {
         localStorage.removeItem(ACTIVITY_DETAILS_CACHE_KEY);
-        trySave([{ id: activityId, data, timestamp: Date.now() }]);
-      } catch {
-        // Silently fail — cache is non-essential
+        flushDetailCacheToLS();
       }
-    } else {
-      console.warn("Storage cache error:", e);
     }
   }
 }
@@ -281,7 +306,8 @@ export function clearAllData(): void {
   localStorage.removeItem(CACHED_ACTIVITIES_KEY);
   localStorage.removeItem(ACTIVITIES_LAST_FETCH_KEY);
   localStorage.removeItem(ACTIVITY_DETAILS_CACHE_KEY);
-  // Also clear legacy token keys
   localStorage.removeItem("strava_access_token");
   localStorage.removeItem("strava_refresh_token");
+  _analysesCache = null;
+  _detailCache = null;
 }

@@ -19,6 +19,11 @@ export function SplitsTable({ splits, type = "metric" }: SplitsTableProps) {
 
   const unit = type === "metric" ? "km" : "mi";
 
+  const avgPace = splits.reduce((sum, s) => {
+    const p = s.distance > 0 ? s.moving_time / (s.distance / 1000) : 0;
+    return sum + p;
+  }, 0) / splits.length;
+
   return (
     <Card className="surface animate-in-slide" style={{ animationDelay: '100ms' }}>
       <CardHeader className="pb-2">
@@ -45,11 +50,6 @@ export function SplitsTable({ splits, type = "metric" }: SplitsTableProps) {
                 : 0;
               const paceMin = Math.floor(paceSecondsPerKm / 60);
               const paceSec = Math.floor(paceSecondsPerKm % 60);
-              
-              const avgPace = splits.reduce((sum, s) => {
-                const p = s.distance > 0 ? s.moving_time / (s.distance / 1000) : 0;
-                return sum + p;
-              }, 0) / splits.length;
               
               const isFaster = paceSecondsPerKm < avgPace * 0.95;
               const isSlower = paceSecondsPerKm > avgPace * 1.05;

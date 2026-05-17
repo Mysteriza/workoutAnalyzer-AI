@@ -47,7 +47,7 @@ export function ActivityList() {
     setIsRefreshing(true);
     const token = await getValidAccessToken();
     if (token) {
-      await fetchActivities(token);
+      await fetchActivities();
       setLastFetch(new Date());
     }
     setIsRefreshing(false);

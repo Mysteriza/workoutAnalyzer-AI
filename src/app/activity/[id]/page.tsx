@@ -2,13 +2,12 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { useUserStore } from "@/store/userStore";
 import { useActivityStore } from "@/store/activityStore";
 import dynamic from "next/dynamic";
 const ActivityChart = dynamic(() => import("@/components/ActivityChart").then(mod => mod.ActivityChart), { ssr: false, loading: () => <div className="h-64 w-full animate-pulse bg-muted/50 rounded-xl" /> });
 const AIAnalysis = dynamic(() => import("@/components/AIAnalysis").then(mod => mod.AIAnalysis), { ssr: false, loading: () => <div className="h-64 w-full animate-pulse bg-muted/50 rounded-xl" /> });
-import { SegmentList } from "@/components/SegmentList";
-import { SplitsTable } from "@/components/SplitsTable";
+const SegmentList = dynamic(() => import("@/components/SegmentList").then(mod => mod.SegmentList), { ssr: false, loading: () => <div className="h-32 w-full animate-pulse bg-muted/50 rounded-xl" /> });
+const SplitsTable = dynamic(() => import("@/components/SplitsTable").then(mod => mod.SplitsTable), { ssr: false, loading: () => <div className="h-32 w-full animate-pulse bg-muted/50 rounded-xl" /> });
 import { ExportDataButton } from "@/components/ExportDataButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,24 +53,15 @@ interface ActivityDetailPageProps {
 
 export default function ActivityDetailPage({ params }: ActivityDetailPageProps) {
   const { id } = use(params);
-  const { getValidAccessToken, isConnected, initializeFromStorage } = useUserStore();
   const { streamData, activityDetail, isLoading, isFromCache, fetchActivityDetail } = useActivityStore();
   const [activity, setActivity] = useState<StravaActivity | null>(null);
   const [loadingActivity, setLoadingActivity] = useState(true);
 
   useEffect(() => {
-    initializeFromStorage();
-  }, [initializeFromStorage]);
-
-  useEffect(() => {
     const loadActivity = async () => {
-      if (!isConnected) return;
-      
-      const token = await getValidAccessToken();
-      if (!token) return;
-
+      setLoadingActivity(true);
       try {
-        await fetchActivityDetail(parseInt(id), token);
+        await fetchActivityDetail(parseInt(id));
       } catch (err) {
         console.error("Failed to load activity:", err);
       } finally {
@@ -80,7 +70,7 @@ export default function ActivityDetailPage({ params }: ActivityDetailPageProps) 
     };
 
     loadActivity();
-  }, [id, isConnected, getValidAccessToken, fetchActivityDetail]);
+  }, [id, fetchActivityDetail]);
 
   useEffect(() => {
     if (activityDetail?.activity) {
