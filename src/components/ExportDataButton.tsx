@@ -108,23 +108,25 @@ export function ExportDataButton({ activityDetail, activityName }: ExportReportB
 
     yPos += 8;
 
+    const pauseTime = Math.max(0, (activity.elapsed_time || 0) - (activity.moving_time || 0));
+
     const statsData = [
       [
         { label: "Distance", value: formatDistance(activity.distance), icon: "📍" },
-        { label: "Duration", value: formatDuration(activity.moving_time), icon: "⏱️" },
+        { label: "Moving Time", value: formatDuration(activity.moving_time), icon: "⏱️" },
+        { label: "Elapsed Time", value: formatDuration(activity.elapsed_time || 0), icon: "⏰" },
         { label: "Elevation", value: `${activity.total_elevation_gain?.toFixed(0) || 0} m`, icon: "⛰️" },
-        { label: "Avg Speed", value: formatSpeed(activity.average_speed || 0), icon: "🚀" },
       ],
       [
         { label: "Avg HR", value: activity.average_heartrate ? `${Math.round(activity.average_heartrate)} bpm` : "N/A", icon: "❤️" },
         { label: "Max HR", value: activity.max_heartrate ? `${Math.round(activity.max_heartrate)} bpm` : "N/A", icon: "💓" },
         { label: "Calories", value: `${activity.calories || 0}`, icon: "🔥" },
-        { label: "Elev Range", value: `${activity.elev_low?.toFixed(0) || 0}-${activity.elev_high?.toFixed(0) || 0} m`, icon: "📊" },
+        { label: "Pause Time", value: formatDuration(pauseTime), icon: "⏸️" },
       ],
       [
+        { label: "Avg Speed", value: formatSpeed(activity.average_speed || 0), icon: "🚀" },
         { label: "Max Speed", value: formatSpeed(activity.max_speed || 0), icon: "⚡" },
         { label: "Kudos", value: `${activity.kudos_count || 0}`, icon: "👍" },
-        { label: "Achievements", value: `${activity.achievement_count || 0}`, icon: "🏆" },
         { label: "PRs", value: `${activity.pr_count || 0}`, icon: "🥇" },
       ],
     ];

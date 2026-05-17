@@ -1,72 +1,53 @@
-import { auth } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { requireAuth, badRequest, serverError } from "@/lib/api-utils";
+import { checkRateLimit, getClientIp, buildRateLimitKey } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
+import { profileSchema } from "@/lib/validations";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
-import { NextResponse } from "next/server";
 
-export async function PUT(req: Request) {
-  const session = await auth();
-
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  await dbConnect();
-
+export async function PUT(request: Request) {
   try {
-    const data = await req.json();
-    let { age, weight, height, restingHeartRate, preferredActivity } = data;
-
-    age = Number(age);
-    weight = Number(weight);
-    height = Number(height);
-    restingHeartRate = Number(restingHeartRate);
-
-    if (
-      isNaN(age) || age < 10 || age > 120 ||
-      isNaN(weight) || weight < 30 || weight > 250 ||
-      isNaN(height) || height < 100 || height > 250 ||
-      isNaN(restingHeartRate) || restingHeartRate < 30 || restingHeartRate > 200
-    ) {
-      return NextResponse.json(
-        { error: "Invalid physiological data. Please provide realistic values." },
-        { status: 400 }
-      );
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(buildRateLimitKey(ip, "user-update"));
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const stravaId = session.user.stravaId;
+    const { session, error } = await requireAuth();
+    if (error) return error;
 
-    // Explicit save always marks as configured
-    const user = await User.findOneAndUpdate(
-      { stravaId },
-      {
-        $set: {
-          "profile.age": age,
-          "profile.weight": weight,
-          "profile.height": height,
-          "profile.restingHeartRate": restingHeartRate,
-          "profile.preferredActivity": preferredActivity,
-          "profile.isConfigured": true,
-        },
-      },
-      { returnDocument: "after" }
-    );
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest("Invalid JSON body");
     }
+
+    const parsed = profileSchema.safeParse(body);
+    if (!parsed.success) {
+      return badRequest(parsed.error.issues.map((e: { message: string }) => e.message).join(", "));
+    }
+
+    const { age, weight, height, restingHeartRate, preferredActivity } = parsed.data;
+
+    await dbConnect();
+
+    await User.findByIdAndUpdate(session!.user.id, {
+      "profile.age": age,
+      "profile.weight": weight,
+      "profile.height": height,
+      "profile.restingHeartRate": restingHeartRate,
+      "profile.preferredActivity": preferredActivity || undefined,
+    });
+
+    logger.info("User", `Profile updated for user ${session!.user.id}`);
 
     return NextResponse.json({
       success: true,
-      profile: user.profile,
+      message: "Profile updated successfully",
     });
-  } catch (error) {
-    console.error("Profile update error:", error);
-    return NextResponse.json(
-      { error: "Failed to update profile" },
-      { status: 500 }
-    );
+  } catch (err) {
+    return serverError(err, "user update");
   }
 }

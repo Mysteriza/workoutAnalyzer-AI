@@ -1,49 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireAuth, badRequest, serverError } from "@/lib/api-utils";
+import { checkRateLimit, getClientIp, buildRateLimitKey } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
+import { paginationSchema } from "@/lib/validations";
 import dbConnect from "@/lib/db";
 import Activity from "@/models/Activity";
 import User from "@/models/User";
 import { getValidStravaAccessToken } from "@/lib/stravaToken";
+import { STRAVA_API_BASE } from "@/utils/strava";
 
-const STRAVA_API_BASE = "https://www.strava.com/api/v3";
-
-/**
- * Fetch athlete activities from Strava and cache summaries to MongoDB.
- * This ensures the activity list is persisted server-side and synced across devices.
- */
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const searchParams = request.nextUrl.searchParams;
-  const page = Number(searchParams.get("page") || "1");
-  const perPage = Number(searchParams.get("per_page") || "30");
-
-  if (
-    !Number.isInteger(page) ||
-    page < 1 ||
-    !Number.isInteger(perPage) ||
-    perPage < 1 ||
-    perPage > 100
-  ) {
-    return NextResponse.json(
-      { error: "Invalid pagination parameters" },
-      { status: 400 }
-    );
-  }
-
   try {
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(buildRateLimitKey(ip, "strava-activities"));
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    const searchParams = request.nextUrl.searchParams;
+    const rawPage = searchParams.get("page") || "1";
+    const rawPerPage = searchParams.get("per_page") || "30";
+
+    const parsed = paginationSchema.safeParse({ page: rawPage, per_page: rawPerPage });
+    if (!parsed.success) {
+      return badRequest("Invalid pagination parameters");
+    }
+
+    const { page, per_page } = parsed.data;
+
     await dbConnect();
-    const accessToken = await getValidStravaAccessToken(session.user.stravaId);
+    const accessToken = await getValidStravaAccessToken(session!.user.stravaId);
 
     const response = await fetch(
-      `${STRAVA_API_BASE}/athlete/activities?page=${page}&per_page=${perPage}`,
+      `${STRAVA_API_BASE}/athlete/activities?page=${page}&per_page=${per_page}`,
       {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
       }
     );
 
@@ -57,12 +51,10 @@ export async function GET(request: NextRequest) {
 
     const activities = await response.json();
 
-    // Cache activity summaries to MongoDB for cross-device persistence
     if (activities.length > 0 && Array.isArray(activities)) {
-      const userId = session.user.id;
-      const stravaId = session.user.stravaId;
+      const userId = session!.user.id;
+      const stravaId = session!.user.stravaId;
 
-      // Fallback: look up userId if not in session
       let effectiveUserId = userId;
       if (!effectiveUserId) {
         const user = await User.findOne({ stravaId });
@@ -108,15 +100,13 @@ export async function GET(request: NextRequest) {
         if (bulkOps.length > 0) {
           await Activity.bulkWrite(bulkOps, { ordered: false });
         }
+
+        logger.info("Activities", `Cached ${bulkOps.length} activities for user ${effectiveUserId}`);
       }
     }
 
     return NextResponse.json(activities);
   } catch (err) {
-    console.error("Error fetching activities:", err);
-    return NextResponse.json(
-      { error: "Failed to fetch activities from Strava" },
-      { status: 500 }
-    );
+    return serverError(err, "strava activities");
   }
 }

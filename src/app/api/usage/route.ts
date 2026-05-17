@@ -1,27 +1,32 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { getOrCreateGlobalUsage, getPacificDateKey } from "@/lib/usage";
+import { requireAuth, serverError } from "@/lib/api-utils";
+import { checkRateLimit, getClientIp, buildRateLimitKey } from "@/lib/rate-limit";
+import dbConnect from "@/lib/db";
+import GlobalUsage from "@/models/GlobalUsage";
+import { getPacificDateKey } from "@/lib/usage";
 
-export const dynamic = "force-dynamic";
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(buildRateLimitKey(ip, "usage"));
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const globalUsage = await getOrCreateGlobalUsage();
-    const todayPacific = getPacificDateKey();
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    await dbConnect();
+
+    const today = getPacificDateKey();
+    const usage = await GlobalUsage.findOne({ date: today });
 
     return NextResponse.json({
-      geminiCount: globalUsage.geminiCount || 0,
-      groqCount: globalUsage.groqCount || 0,
-      lastReset: globalUsage.lastReset || todayPacific,
-      geminiLimit: 500,
-      groqLimit: 300,
+      geminiCount: usage?.geminiCount || 0,
+      groqCount: usage?.groqCount || 0,
+      date: today,
     });
-  } catch {
-    return NextResponse.json({ error: "Failed to get usage" }, { status: 500 });
+  } catch (err) {
+    return serverError(err, "usage");
   }
 }

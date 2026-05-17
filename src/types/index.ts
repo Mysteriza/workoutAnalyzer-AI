@@ -122,6 +122,9 @@ export interface StravaActivity {
   start_latlng?: [number, number];
   end_latlng?: [number, number];
   timezone?: string;
+  device_name?: string;
+  trainer?: boolean;
+  commute?: boolean;
   photos?: { primary: unknown; count: number };
 }
 

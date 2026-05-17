@@ -238,8 +238,14 @@ export function getActivityDetailCache(activityId: number): any | null {
   }
 }
 
+const DETAIL_CACHE_MAX = 3;
+
 export function saveActivityDetailCache(activityId: number, data: any): void {
   if (typeof window === "undefined") return;
+
+  const trySave = (items: any[]) => {
+    localStorage.setItem(ACTIVITY_DETAILS_CACHE_KEY, JSON.stringify(items));
+  };
 
   try {
     const stored = localStorage.getItem(ACTIVITY_DETAILS_CACHE_KEY);
@@ -248,13 +254,22 @@ export function saveActivityDetailCache(activityId: number, data: any): void {
     cache = cache.filter((i) => i.id !== activityId);
     cache.unshift({ id: activityId, data, timestamp: Date.now() });
 
-    if (cache.length > 5) {
-      cache = cache.slice(0, 5);
+    if (cache.length > DETAIL_CACHE_MAX) {
+      cache = cache.slice(0, DETAIL_CACHE_MAX);
     }
 
-    localStorage.setItem(ACTIVITY_DETAILS_CACHE_KEY, JSON.stringify(cache));
+    trySave(cache);
   } catch (e) {
-    console.warn("Storage quota limit for cache", e);
+    if (e instanceof DOMException && e.name === "QuotaExceededError") {
+      try {
+        localStorage.removeItem(ACTIVITY_DETAILS_CACHE_KEY);
+        trySave([{ id: activityId, data, timestamp: Date.now() }]);
+      } catch {
+        // Silently fail — cache is non-essential
+      }
+    } else {
+      console.warn("Storage cache error:", e);
+    }
   }
 }
 

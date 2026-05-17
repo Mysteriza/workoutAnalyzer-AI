@@ -1,44 +1,36 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireAuth, badRequest, notFound, serverError, tooMany } from "@/lib/api-utils";
+import { checkRateLimit, getClientIp, buildRateLimitKey } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
+import { analysisRequestSchema } from "@/lib/validations";
 import dbConnect from "@/lib/db";
 import Analysis from "@/models/Analysis";
 import Activity from "@/models/Activity";
 import { MODEL_ID } from "@/app/api/model/route";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const MAX_PROMPT_CHARS = 60000;
-const MAX_SYSTEM_INSTRUCTION_CHARS = 8000;
 
-/**
- * GET — Check if analysis already exists in MongoDB for this activity.
- * Returns cached analysis or 404 if not found.
- */
 export async function GET(req: Request) {
   try {
-    const session = await auth();
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, error } = await requireAuth();
+    if (error) return error;
 
     const { searchParams } = new URL(req.url);
-    const activityId = searchParams.get("activityId");
+    const rawId = searchParams.get("activityId");
 
-    if (!activityId || !Number.isInteger(Number(activityId)) || Number(activityId) <= 0) {
-      return NextResponse.json(
-        { error: "Valid activityId is required" },
-        { status: 400 }
-      );
+    if (!rawId || !/^\d+$/.test(rawId)) {
+      return badRequest("Valid activityId is required");
     }
 
     await dbConnect();
 
     const analysis = await Analysis.findOne({
-      userId: session.user.id,
-      activityId: Number(activityId),
+      userId: session!.user.id,
+      activityId: Number(rawId),
     });
 
-    if (!analysis || !analysis.content?.trim()) {
+    if (!analysis?.content?.trim()) {
       return NextResponse.json({ found: false }, { status: 404 });
     }
 
@@ -50,81 +42,45 @@ export async function GET(req: Request) {
       updatedAt: analysis.updatedAt,
     });
   } catch (error) {
-    console.error("[Analyze GET] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch analysis" },
-      { status: 500 }
-    );
+    return serverError(error, "analyze GET");
   }
 }
 
-/**
- * POST — Generate new AI analysis and save to MongoDB.
- */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { prompt, systemInstruction, activityId, forceRefresh } = body;
-    const session = await auth();
+    const ip = getClientIp(req);
+    const rl = checkRateLimit(buildRateLimitKey(ip, "analyze"), { windowMs: 10_000, maxRequests: 5 });
+    if (!rl.allowed) return tooMany();
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return badRequest("Invalid JSON body");
     }
 
-    if (!prompt || typeof prompt !== "string") {
-      return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+    const parsed = analysisRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return badRequest(parsed.error.issues.map((e: { message: string }) => e.message).join(", "));
     }
 
-    if (
-      prompt.length > MAX_PROMPT_CHARS ||
-      (systemInstruction &&
-        (typeof systemInstruction !== "string" ||
-          systemInstruction.length > MAX_SYSTEM_INSTRUCTION_CHARS))
-    ) {
-      return NextResponse.json(
-        { error: "Analysis request is too large" },
-        { status: 413 }
-      );
-    }
-
-    // Validate activityId — must be a positive integer
-    if (
-      activityId === undefined ||
-      activityId === null ||
-      !Number.isInteger(activityId) ||
-      activityId <= 0
-    ) {
-      return NextResponse.json(
-        { error: "Invalid activityId. Must be a positive integer." },
-        { status: 400 }
-      );
-    }
-
-    // userId is always available from JWT (set during sign-in)
-    const userId = session.user.id;
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User session invalid. Please sign in again." },
-        { status: 401 }
-      );
-    }
+    const { prompt, systemInstruction, activityId, forceRefresh } = parsed.data;
 
     await dbConnect();
 
     const ownedActivity = await Activity.exists({
-      userId,
+      userId: session!.user.id,
       stravaId: activityId.toString(),
     });
 
     if (!ownedActivity) {
-      return NextResponse.json(
-        { error: "Activity not found for this user" },
-        { status: 404 }
-      );
+      return notFound("Activity not found for this user");
     }
 
-    // Check for existing analysis with atomic cooldown check
-    const existingAnalysis = await Analysis.findOne({ userId, activityId });
+    const existingAnalysis = await Analysis.findOne({ userId: session!.user.id, activityId });
 
     if (existingAnalysis && existingAnalysis.content?.trim().length > 0) {
       if (forceRefresh) {
@@ -155,12 +111,11 @@ export async function POST(req: Request) {
       }
     }
 
-    // Check quota using global atomic increment (shared API key)
     const { getOrCreateGlobalUsage, isQuotaExceeded, GEMINI_QUOTA, GROQ_QUOTA } =
       await import("@/lib/usage");
 
     await getOrCreateGlobalUsage();
-    
+
     const geminiExceeded = await isQuotaExceeded("Gemini");
     const groqExceeded = await isQuotaExceeded("Groq");
 
@@ -174,29 +129,27 @@ export async function POST(req: Request) {
       );
     }
 
-    // Generate AI analysis
     let text = "";
     let usedModel = MODEL_ID;
     let geminiFailed = false;
     let geminiErrorMessage = "";
-    
+
     const fullPrompt = systemInstruction ? `${systemInstruction}\n\n${prompt}` : prompt;
 
     if (!geminiExceeded) {
       try {
-        console.log(`[Analyze] Using primary model (Gemini): ${MODEL_ID} for activity: ${activityId}`);
+        logger.info("Analyze", `Using Gemini: ${MODEL_ID} for activity ${activityId}`);
         const model = genAI.getGenerativeModel({ model: MODEL_ID });
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         text = response.text();
-        console.log(`[Analyze] Successfully generated analysis via Gemini for activity: ${activityId}`);
+        logger.info("Analyze", `Success via Gemini for activity ${activityId}`);
       } catch (geminiError: any) {
-        console.error("[Analyze] Gemini API failed:", geminiError.message || geminiError);
+        logger.error("Analyze", `Gemini failed: ${geminiError.message}`);
         geminiFailed = true;
         geminiErrorMessage = geminiError.message;
       }
     } else {
-      console.log(`[Analyze] Gemini quota exceeded. Proceeding directly to fallback.`);
       geminiFailed = true;
       geminiErrorMessage = "Gemini quota exceeded.";
     }
@@ -204,18 +157,16 @@ export async function POST(req: Request) {
     if (geminiFailed) {
       const groqApiKey = process.env.GROQ_API_KEY;
       if (!groqApiKey || groqApiKey === "your_groq_api_key_here") {
-        console.error("[Analyze] GROQ_API_KEY is not configured. Cannot fallback.");
         throw new Error(`Gemini failed and Groq fallback is not configured. Original error: ${geminiErrorMessage}`);
       }
-      
-      console.log(`[Analyze] Falling back to Groq API...`);
-      usedModel = "llama-3.3-70b-versatile"; // High-quality fast fallback model
-      
+
+      logger.info("Analyze", "Falling back to Groq API...");
+      usedModel = "llama-3.3-70b-versatile";
+
       if (groqExceeded) {
-        console.error(`[Analyze] Groq fallback unavailable: quota exceeded.`);
         throw new Error(`Fallback unavailable: Groq daily limit reached. Original Gemini error: ${geminiErrorMessage}`);
       }
-      
+
       const groqMessages = [];
       if (systemInstruction) {
         groqMessages.push({ role: "system", content: systemInstruction });
@@ -234,32 +185,30 @@ export async function POST(req: Request) {
           temperature: 0.7,
         }),
       });
-      
+
       if (!groqResponse.ok) {
         const errorData = await groqResponse.json().catch(() => ({}));
-        console.error("[Analyze] Groq API fallback also failed:", errorData);
+        logger.error("Analyze", `Groq fallback failed: ${groqResponse.statusText}`, errorData);
         throw new Error(`Fallback to Groq failed: ${errorData.error?.message || groqResponse.statusText}. Original Gemini error: ${geminiErrorMessage}`);
       }
-      
+
       const groqData = await groqResponse.json();
       text = groqData.choices[0].message.content;
-      console.log(`[Analyze] Successfully generated analysis via Groq (${usedModel}) for activity: ${activityId}`);
+      logger.info("Analyze", `Success via Groq (${usedModel}) for activity ${activityId}`);
     }
 
     const currentProvider = usedModel.includes("llama") ? "Groq" : "Gemini";
 
-    // Save analysis
     await Analysis.findOneAndUpdate(
-      { userId, activityId },
-      { 
+      { userId: session!.user.id, activityId },
+      {
         content: text,
         provider: currentProvider,
-        aiModel: usedModel
+        aiModel: usedModel,
       },
       { upsert: true, returnDocument: "after" }
     );
 
-    // Increment global quota atomically
     await (await import("@/lib/usage")).incrementGlobalUsage(currentProvider as "Gemini" | "Groq");
 
     return NextResponse.json({
@@ -270,7 +219,7 @@ export async function POST(req: Request) {
       provider: currentProvider,
     });
   } catch (error: unknown) {
-    console.error("[Analyze] Error details:", error);
+    logger.error("Analyze", "Error details", error);
 
     let errorMessage = "Failed to generate analysis";
     let errorCode = "UNKNOWN_ERROR";
@@ -301,15 +250,13 @@ export async function POST(req: Request) {
         errorMessage = "API authentication failed. Check your GEMINI_API_KEY.";
       } else if (message.includes("500") || message.includes("503")) {
         errorCode = "SERVER_ERROR";
-        errorMessage =
-          "Gemini API is temporarily unavailable. Please try again later.";
+        errorMessage = "Gemini API is temporarily unavailable. Please try again later.";
       } else {
-        errorMessage =
-          message.length > 200 ? message.substring(0, 200) + "..." : message;
+        errorMessage = message.length > 200 ? message.substring(0, 200) + "..." : message;
       }
     }
 
-    console.error(`[Analyze] Returning error: ${errorCode} - ${errorMessage}`);
+    logger.error("Analyze", `${errorCode} - ${errorMessage}`);
 
     return NextResponse.json(
       { error: errorMessage, code: errorCode },
@@ -318,39 +265,28 @@ export async function POST(req: Request) {
   }
 }
 
-/**
- * DELETE — Delete analysis from MongoDB.
- */
 export async function DELETE(req: Request) {
   try {
-    const session = await auth();
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, error } = await requireAuth();
+    if (error) return error;
 
     const { searchParams } = new URL(req.url);
-    const activityId = searchParams.get("activityId");
+    const rawId = searchParams.get("activityId");
 
-    if (!activityId || !Number.isInteger(Number(activityId)) || Number(activityId) <= 0) {
-      return NextResponse.json(
-        { error: "Valid activityId is required" },
-        { status: 400 }
-      );
+    if (!rawId || !/^\d+$/.test(rawId)) {
+      return badRequest("Valid activityId is required");
     }
 
     await dbConnect();
 
     await Analysis.deleteOne({
-      userId: session.user.id,
-      activityId: Number(activityId),
+      userId: session!.user.id,
+      activityId: Number(rawId),
     });
 
+    logger.info("Analyze", `Deleted analysis for activity ${rawId}`);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[Analyze DELETE] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete analysis" },
-      { status: 500 }
-    );
+    return serverError(error, "analyze DELETE");
   }
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { StravaActivity } from "@/types";
 import { Card } from "@/components/ui/card";
 import { formatDuration, formatDistance, formatDate, getActivityIcon } from "@/utils/strava";
-import { MapPin, Clock, TrendingUp, Heart, Flame } from "lucide-react";
+import { MapPin, Clock, TrendingUp, Heart, Flame, Timer } from "lucide-react";
 
 interface ActivityCardProps {
   activity: StravaActivity;
@@ -42,7 +42,7 @@ export function ActivityCard({ activity }: ActivityCardProps) {
               <MapPin className="h-3 w-3 text-blue-400" />
               <span className="font-medium text-foreground">{formatDistance(activity.distance)}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-muted-foreground" title={`Moving Time: ${formatDuration(activity.moving_time)}`}>
               <Clock className="h-3 w-3 text-green-400" />
               <span className="font-medium text-foreground">{formatDuration(activity.moving_time)}</span>
             </div>

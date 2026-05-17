@@ -1,63 +1,50 @@
 import { NextResponse } from "next/server";
-import { auth, signOut } from "@/lib/auth";
+import { requireAuth, serverError } from "@/lib/api-utils";
+import { checkRateLimit, getClientIp, buildRateLimitKey } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 import dbConnect from "@/lib/db";
-import mongoose from "mongoose";
 import User from "@/models/User";
 import Activity from "@/models/Activity";
 import Analysis from "@/models/Analysis";
+import mongoose from "mongoose";
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   try {
-    const session = await auth();
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(buildRateLimitKey(ip, "user-reset"), {
+      windowMs: 300_000,
+      maxRequests: 2,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests. Please wait before resetting again." }, { status: 429 });
     }
+
+    const { session, error } = await requireAuth();
+    if (error) return error;
 
     await dbConnect();
-
-    // userId is always available from JWT
-    const userId = session.user.id;
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User session invalid" },
-        { status: 401 }
-      );
-    }
-
-    // Use MongoDB transaction for atomic deletion
-    const dbSession = await mongoose.startSession();
-    dbSession.startTransaction();
+    const sessionDB = await mongoose.startSession();
+    sessionDB.startTransaction();
 
     try {
-      await Activity.deleteMany({ userId }, { session: dbSession });
-      await Analysis.deleteMany({ userId }, { session: dbSession });
-      await User.findByIdAndDelete(userId, { session: dbSession });
+      await Promise.all([
+        User.findByIdAndDelete(session!.user.id).session(sessionDB),
+        Activity.deleteMany({ userId: session!.user.id }).session(sessionDB),
+        Analysis.deleteMany({ userId: session!.user.id }).session(sessionDB),
+      ]);
 
-      await dbSession.commitTransaction();
-    } catch (error) {
-      await dbSession.abortTransaction();
-      throw error;
+      await sessionDB.commitTransaction();
+      logger.info("User", `All data reset for user ${session!.user.id}`);
+    } catch (txError) {
+      await sessionDB.abortTransaction();
+      logger.error("User", `Reset transaction failed for user ${session!.user.id}`, txError);
+      throw txError;
     } finally {
-      dbSession.endSession();
+      sessionDB.endSession();
     }
 
-    // Invalidate the session after deletion
-    await signOut({ redirect: false });
-
-    // Signal client to clear localStorage and redirect
-    return NextResponse.json({
-      success: true,
-      message: "All user data has been deleted. Please sign in again.",
-      requireReauth: true,
-      clearLocalStorage: true,
-    });
-  } catch (error) {
-    console.error("Reset Data Error:", error);
-    return NextResponse.json(
-      { error: "Failed to reset data" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return serverError(err, "user reset");
   }
 }

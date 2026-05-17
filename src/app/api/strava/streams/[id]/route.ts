@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireAuth, serverError } from "@/lib/api-utils";
+import { checkRateLimit, getClientIp, buildRateLimitKey } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 import dbConnect from "@/lib/db";
 import Activity from "@/models/Activity";
 import User from "@/models/User";
 import { getValidStravaAccessToken } from "@/lib/stravaToken";
-
-const STRAVA_API_BASE = "https://www.strava.com/api/v3";
+import { STRAVA_API_BASE } from "@/utils/strava";
 
 interface StravaStreamItem {
   type: string;
@@ -19,25 +20,27 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  if (!/^\d+$/.test(id)) {
-    return NextResponse.json({ error: "Invalid activity ID" }, { status: 400 });
-  }
-
-  // 1. Authenticate first — ensures session is valid before any work
-  const session = await auth();
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    await dbConnect();
-    const accessToken = await getValidStravaAccessToken(session.user.stravaId);
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(buildRateLimitKey(ip, "strava-streams"));
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
 
-    let userId = session.user.id;
-    // Fallback: look up userId if not in session but stravaId is
-    if (!userId && session.user.stravaId) {
-      const user = await User.findOne({ stravaId: session.user.stravaId });
+    const { id } = await params;
+    if (!/^\d+$/.test(id)) {
+      return NextResponse.json({ error: "Invalid activity ID" }, { status: 400 });
+    }
+
+    const { session, error } = await requireAuth();
+    if (error) return error;
+
+    await dbConnect();
+    const accessToken = await getValidStravaAccessToken(session!.user.stravaId);
+
+    let userId = session!.user.id;
+    if (!userId && session!.user.stravaId) {
+      const user = await User.findOne({ stravaId: session!.user.stravaId });
       if (user) userId = user._id.toString();
     }
 
@@ -45,22 +48,17 @@ export async function GET(
       return NextResponse.json({ error: "User profile not found in DB" }, { status: 401 });
     }
 
-    // 2. Check Cache in DB First
-    // SECURITY: Ensure we only return activities belonging to the current user
     const existingActivity = await Activity.findOne({ stravaId: id, userId });
 
-    // Ensure we have the full activity detail, not just a summary. 
-    // The full activity data has an 'id' field at the root.
-    if (existingActivity && existingActivity.data && existingActivity.data.id) {
-      console.log(`Serving activity ${id} from DB cache for user ${userId}.`);
+    if (existingActivity?.data?.id) {
+      logger.info("Streams", `Serving activity ${id} from DB cache`);
       return NextResponse.json({
         activity: existingActivity.data,
         streams: existingActivity.streams || {},
       });
     }
 
-    // 3. Cache Miss — Fetch from Strava API
-    console.log(`Fetching activity ${id} from Strava API...`);
+    logger.info("Streams", `Fetching activity ${id} from Strava API...`);
     const [activityResponse, streamsResponse] = await Promise.all([
       fetch(`${STRAVA_API_BASE}/activities/${id}?include_all_efforts=true`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -81,7 +79,6 @@ export async function GET(
 
     const activityDetail = await activityResponse.json();
 
-    // Process Streams
     const streams: Record<string, number[]> = {
       time: [],
       distance: [],
@@ -98,7 +95,6 @@ export async function GET(
       }
     }
 
-    // 4. Save to DB for Caching
     await Activity.findOneAndUpdate(
       { stravaId: id, userId },
       {
@@ -107,21 +103,18 @@ export async function GET(
           data: activityDetail,
           streams,
           lastFetchedAt: new Date(),
-        }
+        },
       },
       { upsert: true }
     );
-    console.log(`Activity ${id} cached to DB.`);
+
+    logger.info("Streams", `Activity ${id} cached to DB.`);
 
     return NextResponse.json({
       activity: activityDetail,
       streams,
     });
   } catch (err) {
-    console.error("Error fetching activity details:", err);
-    return NextResponse.json(
-      { error: "Failed to fetch activity details from Strava" },
-      { status: 500 }
-    );
+    return serverError(err, "strava streams");
   }
 }

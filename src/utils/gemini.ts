@@ -162,11 +162,16 @@ export function buildAnalysisPrompt(
   const terms = getTerms(activity.type);
 
   // 8. JSON User Data
+  const elapsedDurationMin = Math.floor((activity.elapsed_time || activity.moving_time) / 60);
+  const pauseMin = Math.max(0, elapsedDurationMin - durationMin);
+
   const userDataJson = JSON.stringify({
     activityName: activity.name,
     type: activity.type,
     sportType: activity.sport_type,
-    duration: `${durationMin} menit`,
+    movingTime: `${durationMin} menit`,
+    elapsedTime: `${elapsedDurationMin} menit`,
+    pauseTime: `${pauseMin} menit (${pauseMin > 0 ? ((pauseMin / elapsedDurationMin) * 100).toFixed(0) + '% dari total' : 'tidak ada istirahat'})`,
     distance: `${(activity.distance / 1000).toFixed(2)} km`,
     elevation: `${activity.total_elevation_gain || 0} m`,
     gear: gearName,
