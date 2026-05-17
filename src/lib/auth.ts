@@ -67,7 +67,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     },
     async jwt({ token, account, user, trigger, session }) {
-      // Keep only non-secret identity data in the browser-readable session.
       if (account && user) {
         token.userId = user.id;
         token.stravaId = account.providerAccountId;
@@ -76,6 +75,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // On session update trigger (e.g., profile change), refresh from DB
       if (trigger === "update" && session?.profile) {
         token.profile = session.profile;
+      }
+
+      // On initial sign-in, load profile from MongoDB
+      if (trigger === "signIn" || trigger === "signUp") {
+        try {
+          const { default: dbConnect } = await import("@/lib/db");
+          const { default: UserModel } = await import("@/models/User");
+          await dbConnect();
+          const dbUser = await UserModel.findOne({ stravaId: token.stravaId as string });
+          if (dbUser?.profile) {
+            token.profile = {
+              age: dbUser.profile.age,
+              weight: dbUser.profile.weight,
+              height: dbUser.profile.height,
+              restingHeartRate: dbUser.profile.restingHeartRate,
+              preferredActivity: dbUser.profile.preferredActivity,
+              isConfigured: dbUser.profile.isConfigured,
+            };
+          }
+        } catch {
+          // Non-critical — profile loads from localStorage fallback
+        }
       }
 
       return token;

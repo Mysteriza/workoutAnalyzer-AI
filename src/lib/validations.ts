@@ -33,6 +33,7 @@ export const profileSchema = z.object({
   height: z.number().min(100).max(250),
   restingHeartRate: z.number().int().min(30).max(200),
   preferredActivity: z.string().optional(),
+  isConfigured: z.boolean().optional(),
 });
 
 export type ValidatedAnalysisRequest = z.infer<typeof analysisRequestSchema>;

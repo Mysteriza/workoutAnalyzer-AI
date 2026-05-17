@@ -29,16 +29,19 @@ export async function PUT(request: Request) {
       return badRequest(parsed.error.issues.map((e: { message: string }) => e.message).join(", "));
     }
 
-    const { age, weight, height, restingHeartRate, preferredActivity } = parsed.data;
+    const { age, weight, height, restingHeartRate, preferredActivity, isConfigured } = parsed.data;
 
     await dbConnect();
 
     await User.findByIdAndUpdate(session!.user.id, {
-      "profile.age": age,
-      "profile.weight": weight,
-      "profile.height": height,
-      "profile.restingHeartRate": restingHeartRate,
-      "profile.preferredActivity": preferredActivity || undefined,
+      $set: {
+        "profile.age": age,
+        "profile.weight": weight,
+        "profile.height": height,
+        "profile.restingHeartRate": restingHeartRate,
+        "profile.preferredActivity": preferredActivity || undefined,
+        "profile.isConfigured": isConfigured ?? true,
+      },
     });
 
     logger.info("User", `Profile updated for user ${session!.user.id}`);

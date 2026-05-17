@@ -15,6 +15,7 @@ interface UserState {
   isLoading: boolean;
 
   initializeFromStorage: () => void;
+  syncServerProfile: () => Promise<void>;
   setProfile: (profile: Partial<UserProfile>) => void;
   setTokens: (tokens: StravaTokens) => void;
   setConnected: (isConnected: boolean) => void;
@@ -41,12 +42,42 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   initializeFromStorage: () => {
     const storedProfile = getUserProfile();
+    const initialProfile = storedProfile || DEFAULT_PROFILE;
+
     set({
-      userProfile: storedProfile || DEFAULT_PROFILE,
+      userProfile: initialProfile,
       tokens: null,
       isConnected: false,
       isLoading: false,
     });
+
+    // Sync profile from server if logged in (overrides localStorage)
+    get().syncServerProfile();
+  },
+
+  syncServerProfile: async () => {
+    try {
+      const res = await fetch("/api/user/profile");
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (!data.profile) return;
+
+      const serverProfile: Partial<UserProfile> = {};
+      if (data.profile.age) serverProfile.age = data.profile.age;
+      if (data.profile.weight) serverProfile.weight = data.profile.weight;
+      if (data.profile.height) serverProfile.height = data.profile.height;
+      if (data.profile.restingHeartRate) serverProfile.restingHeartRate = data.profile.restingHeartRate;
+      if (data.profile.preferredActivity) serverProfile.preferredActivity = data.profile.preferredActivity;
+      if (data.profile.isConfigured) serverProfile.isConfigured = true;
+
+      const current = get().userProfile;
+      const merged = { ...current, ...serverProfile };
+      saveUserProfile(merged);
+      set({ userProfile: merged });
+    } catch {
+      // Non-critical — localStorage fallback works
+    }
   },
 
   setProfile: (profile: Partial<UserProfile>) => {
@@ -71,10 +102,10 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   setConnected: (isConnected: boolean) => {
-    if (isConnected) {
+    if (!isConnected) {
       clearStravaTokens();
     }
-    set({ isConnected, tokens: null });
+    set({ isConnected, tokens: isConnected ? get().tokens : null });
   },
 
   refreshTokens: async () => {
